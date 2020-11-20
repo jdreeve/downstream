@@ -1,19 +1,19 @@
-locations
+#locations
 #format: site_name x_coord y_coord
-home 0 0
-jobsite_1 27 44
-jobsite_2 30 50
-jobsite_3 -76 -16
-appointment_1 15 15
+location home 0 0
+location jobsite_1 27 44
+location jobsite_2 30 50
+location jobsite_3 -76 -16
+location appointment_1 15 15 #comment demo
 
-events
+#events
 #format: client ID, origin, destination, pickup time, dropoff time
 #(-1 = not specified)
 #times are in minutes after midnight (e.g. 60 = 1AM, 120 = 2AM, 150 = 2:30AM)
-client_1 home jobsite_1 -1 480
-client_1 jobsite_1 home 1020 -1
-client_2 home jobsite_2 -1 480
-client_2 jobsite_2 appointment_1 -1 600
-client_2 appointment_1 home 840 -1
-client_3 home jobsite_3 -1 600
-client_3 jobsite_3 home 960 -1
+event client_1 home jobsite_1 -1 480
+event client_1 jobsite_1 home 1020 -1
+event client_2 home jobsite_2 -1 480
+event client_2 jobsite_2 appointment_1 -1 600
+event client_2 appointment_1 home 840 -1
+event client_3 home jobsite_3 -1 600
+event client_3 jobsite_3 home 960 -1
