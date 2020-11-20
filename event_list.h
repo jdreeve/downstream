@@ -4,12 +4,14 @@
  */
 #ifndef EVENT_LIST_H
 #define EVENT_LIST_H
+
 #include <stdbool.h>
+#include "location_list.h"
 
 typedef struct EVENT_NODE {
     char* client_name;
-    char* origin;
-    char* destination;
+    location_node* origin;
+    location_node* destination;
     int departure_time;
     int arrival_time;
     struct EVENT_NODE *next;
@@ -42,7 +44,7 @@ void event_list_destroy(event_list *list);
  * Return true if successful.
  * Return false if event_list is NULL or could not allocate space.
  */
-bool event_list_add(event_list *list, char* client_name, char* origin, char* destination, int departure_time, int arrival_time);
+bool event_list_add(event_list *list, location_list* locations, char* client_name, char* origin_name, char* destination_name, int departure_time, int arrival_time);
 
 /*
  * Deletes a event_node from the linked list.
@@ -56,6 +58,8 @@ bool event_node_delete(event_list *list, event_node* event_node);
   Return 0 if list is NULL or empty
  */
 int event_list_size(event_list *list);
+
+event_list* event_list_sort_by_departure_time(event_list *list, location_list* locations);
 
 void event_list_print(event_list* list);
 

@@ -12,12 +12,12 @@ typedef struct LOCATION_NODE {
     int y;
     struct LOCATION_NODE *next;
     struct LOCATION_NODE *previous;
-} node;
+} location_node;
 
 /* Queue structure */
 typedef struct {
-    node *head;  /* Linked location_list of elements */
-    node *tail;
+    location_node *head;  /* Linked location_list of elements */
+    location_node *tail;
     int size;
 } location_list;
 
@@ -36,18 +36,18 @@ location_list *location_list_create();
 void location_list_destroy(location_list *list);
 
 /*
- * Create a node and append it to the location_list
+ * Create a location_node and append it to the location_list
  * Return true if successful.
  * Return false if location_list is NULL or could not allocate space.
  */
 bool location_list_add(location_list *list, char* string, int x, int y);
 
 /*
- * Deletes a node from the linked list.
+ * Deletes a location_node from the linked list.
  * Return true if successful.
  * Return false if list is NULL or empty.
 */
-bool location_list_delete(location_list *list, node* node);
+bool location_list_delete(location_list *list, location_node* location_node);
 
 /*
   Return number of elements in location_list.
@@ -55,17 +55,19 @@ bool location_list_delete(location_list *list, node* node);
  */
 int location_list_size(location_list *list);
 
+double location_list_get_distance(location_node* origin, location_node* destination);
+
 void location_list_print(location_list *list);
 
 /*
- * Return pointer to node containing string.
+ * Return pointer to location_node containing string.
  * Returns NULL if list is NULL or empty.
  */
-node* location_list_search(location_list *list, char* string);
+location_node* location_list_search(location_list *list, char* string);
 
 /*
- * Return pointer to node at given index.
+ * Return pointer to location_node at given index.
  * Returns NULL if list is NULL or empty.
 */
-node* location_list_get(location_list *list, int index);
+location_node* location_list_get(location_list *list, int index);
 #endif

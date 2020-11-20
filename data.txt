@@ -17,3 +17,8 @@ event client_2 jobsite_2 appointment_1 -1 600
 event client_2 appointment_1 home 840 -1
 event client_3 home jobsite_3 -1 600
 event client_3 jobsite_3 home 960 -1
+
+#vehicles
+#format: capacity
+vehicle 1
+vehicle 1

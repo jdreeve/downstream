@@ -28,7 +28,7 @@ void event_list_destroy(event_list* list){
     }//if
 }//list_free
 
-bool event_list_add(event_list* list, char* client_name, char* origin, char* destination, int departure_time, int arrival_time){
+bool event_list_add(event_list* list, location_list* locations, char* client_name, char* origin, char* destination, int departure_time, int arrival_time){
     event_node *new_event_node;
         if(list==NULL){
     return false;
@@ -38,15 +38,15 @@ bool event_list_add(event_list* list, char* client_name, char* origin, char* des
     return false;
         }
     new_event_node->client_name = (char*)malloc((strlen(client_name)+1) * sizeof(char));
-    new_event_node->origin = (char*)malloc((strlen(origin)+1) * sizeof(char));
-    new_event_node->destination = (char*)malloc((strlen(destination)+1) * sizeof(char));
     
     strcpy(new_event_node->client_name, client_name);
-    strcpy(new_event_node->origin, origin);
-    strcpy(new_event_node->destination, destination);
+    
     new_event_node->departure_time = departure_time;
     new_event_node->arrival_time = arrival_time;
+    new_event_node->origin = location_list_search(locations, origin);
+    new_event_node->destination = location_list_search(locations, destination);
     new_event_node->next = list->head;
+
     list->head = new_event_node;
     if (list->size==0){
         list->tail = new_event_node;
@@ -79,17 +79,17 @@ bool event_node_delete(event_list* list, event_node* event_node){
 	event_node->next->previous = event_node->previous;
     }//else
     free(event_node->client_name);
-    free(event_node->origin);
-    free(event_node->destination);
     free(event_node);
     list->size--;
     return true;
 }//event_list_delete
 
 void event_list_print(event_list* list){
+	printf("Printing event list\n");
+	fflush(stdout);
 	event_node* iterator = list->head;
 	while(iterator != NULL){
-		printf("origin: %s destination: %s departure: %d arrival: %d\n", iterator->origin, iterator->destination, iterator->departure_time, iterator->arrival_time);
+		printf("origin: %s destination: %s departure: %d arrival: %d\n", iterator->origin->name, iterator->destination->name, iterator->departure_time, iterator->arrival_time);
 		iterator = iterator->next;
 	}
 }
@@ -101,16 +101,35 @@ int event_list_size(event_list* list){
     return list->size;
 }//event_list_size
 
-event_node* event_list_search(event_list* list, char* origin){
-	printf("DEBUG: Search not implemented for events\n");
+event_node* event_list_find_next_departure(event_list* list, int current_time){
     if (list==NULL || list->size == 0){
         return NULL;
 }
     event_node* iterator = list->head;
-    while( (iterator != NULL) && (strcmp(iterator->origin,origin))){
+    event_node* next_departure = list->head;
+    int least_next_departure_time = list->head->departure_time;
+
+    while( (iterator != NULL)){
+        if( (iterator->departure_time > current_time) && (iterator->departure_time < least_next_departure_time)){
+		next_departure = iterator;
+		least_next_departure_time = next_departure->departure_time;
+	}
         iterator = iterator->next;
     }//while
-    return iterator;
+    return next_departure;
+}
+
+event_list* event_list_sort_by_departure_time(event_list* list, location_list* locations){
+	event_list* new_list = event_list_create();
+	event_node* node;
+	int current_time = 0;
+	for(int i=0; i < (list->size-1); i++){
+		node = event_list_find_next_departure(list, current_time);
+		current_time = node->departure_time;
+		event_list_add(new_list, locations, node->client_name, node->origin->name, node->destination->name, node->departure_time, node->arrival_time);
+	}
+	//event_list_destroy(list); //TODO causes double free??
+	return new_list;
 }
 
 event_node* event_list_get(event_list* list, int index){
