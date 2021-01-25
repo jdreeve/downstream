@@ -9,7 +9,7 @@
 typedef struct VEHICLE {
     int vehicle_number;
     int capacity;
-    int current_time;
+    double current_time;
     location_node* current_location;
     struct VEHICLE *next;
     struct VEHICLE *previous;

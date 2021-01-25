@@ -4,6 +4,8 @@
 #include <math.h>
 #include "location_list.h"
 
+#define DEBUG 1
+
 location_list* location_list_create(){
     location_list* list = (location_list*)malloc(sizeof(location_list));
     if (list != NULL){
@@ -113,6 +115,9 @@ double location_list_get_distance(location_node* origin, location_node* destinat
 	int delta_x = (destination->x) - (origin->x);
 	int delta_y = (destination->y) - (origin->y);
 	double distance = sqrt((double)(delta_x * delta_x) + (double)(delta_y * delta_y));
+    if(DEBUG){
+        printf("location_list_get_distance reports: distance = %f\n---\n", distance);
+    }
 	return distance;
 }
 

@@ -89,7 +89,7 @@ void planned_event_list_print(planned_event_list* list){
 	fflush(stdout);
 	planned_event_node* iterator = list->head;
 	while(iterator != NULL){
-		printf("origin: %s destination: %s departure: %d arrival: %d\n", iterator->origin->name, iterator->destination->name, iterator->departure_time, iterator->arrival_time);
+		printf("Vehicle: %d Origin: %s destination: %s departure: %d arrival: %d\n", iterator->vehicle_number, iterator->origin->name, iterator->destination->name, iterator->departure_time, iterator->arrival_time);
 		iterator = iterator->next;
 	}
 }
