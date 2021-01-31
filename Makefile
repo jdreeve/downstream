@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -g -Wall
 LDFLAGS = -lpthread
 
-all: downstream
+all: downstream cbc_image
 
 downstream: downstream.o location_list.o event_list.o vehicle_list.o greedy_solver.o planned_event_list.o
 	$(CC) $(CFLAGS) downstream.o location_list.o event_list.o planned_event_list.o vehicle_list.o greedy_solver.o -o downstream $(LDFLAGS)
@@ -24,6 +24,10 @@ vehicle_list.o: vehicle_list.c vehicle_list.h
 
 greedy_solver.o: greedy_solver.c greedy_solver.h
 	$(CC) $(CFLAGS) -c greedy_solver.c
+
+cbc_image:
+	docker build -t coin-or_cbc_ready .
+
 clean:
 	rm -f *~ *.o downstream core *.tar *.zip *.gzip *.bzip *.gz
 
