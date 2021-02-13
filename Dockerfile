@@ -12,3 +12,4 @@ RUN make test
 
 RUN make install
 
+WORKDIR /var/coin-or/Cbc/bin
