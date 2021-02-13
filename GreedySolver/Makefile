@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -g -Wall
 LDFLAGS = -lpthread
 
-all: downstream cbc_image
+all: downstream #cbc_image
 
 downstream: downstream.o location_list.o event_list.o vehicle_list.o greedy_solver.o planned_event_list.o
 	$(CC) $(CFLAGS) downstream.o location_list.o event_list.o planned_event_list.o vehicle_list.o greedy_solver.o -o downstream $(LDFLAGS)
