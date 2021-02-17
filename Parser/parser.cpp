@@ -22,6 +22,7 @@ class Node{
         string name;
         int earliestServiceTime;
         int latestServiceTime;
+        int serviceDuration;
         string address;
         int load;
 
@@ -31,6 +32,7 @@ class Node{
             latestServiceTime = late;
             load = ld;
             address = addr;
+            serviceDuration = 0;
         }
 };
 
@@ -58,6 +60,15 @@ void writeTerminal(std::string filePath);
 void printNodes(vector<Node> nodes);
 void printVehicles(vector<Vehicle> vehicles);
 string cordeauConstraint2(vector<Node> nodes, vector<Vehicle> vehicles);
+string cordeaucordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles);
+string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles);
+string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles);
+string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles);
+int getTransitTime(Node i, Node j);
+
+string buildTransitTerm(int coefficient, int origin, int destination, int vehicle, string operation);
+string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation);
+void addTerm(string &constraint, string term);
 
 int main() {
     vector<Node> nodes;
@@ -286,27 +297,215 @@ void writeConstraints(std::string filePath, vector<Node> nodes, vector<Vehicle> 
     constraint=cordeauConstraint2(nodes, vehicles);
     lpfile << constraint;
     lpfile << "\n";
+    constraint = cordeaucordeauConstraint3(nodes, vehicles);
+    lpfile << constraint;
+    lpfile << "\n";
+    constraint = cordeauConstraint4(nodes, vehicles);
+    lpfile << constraint;
+    lpfile << "\n";
+    constraint = cordeauConstraint5(nodes, vehicles);
+    lpfile << constraint;
+    lpfile << "\n";
+    constraint = cordeauConstraint6(nodes, vehicles);
+    lpfile << constraint;
+    lpfile << "\n";
     lpfile.close();
 }
 
+/* 
+ * Constraint 2: Visit every pickup location (i.e. serve every request exactly once)
+ */
 string cordeauConstraint2(vector<Node> nodes, vector<Vehicle> vehicles){
-    string constraint;
-    string operation = " = 1\n";
+    string cordeauConstraint2;
+    string operation = " + ";
 
-    for(unsigned i=1; i<(nodes.size()-2)/2; i++){
+    for(unsigned i=1; i<=(nodes.size()-2)/2; i++){
         for(unsigned k=0; k<vehicles.size(); k++){
             for(unsigned j=0; j<nodes.size(); j++){
                 if(i!=j){
-                    string tempString;
-                    tempString += "x";
-                    tempString += to_string(i);
-                    tempString += to_string(j);
-                    tempString += to_string(k);
-                    tempString.append(operation);
-                    constraint.append(tempString);
+                    string term = buildTransitTerm(1, i, j, k, " + ");
+                    addTerm(cordeauConstraint2, term);
+                }
+            }
+        }
+        cordeauConstraint2.erase(cordeauConstraint2.size()-operation.size());
+        cordeauConstraint2 += " = 1\n";
+    }
+    return cordeauConstraint2;
+}
+
+/*
+ * Constraint 3: The same vehicle must visit corresponding pickup and dropoff nodes.
+ */
+string cordeaucordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles){
+    string cordeauConstraint3;
+    string operation1 = " + ";
+    string operation2 = " - ";
+    int charCounter = 0;
+    for(unsigned i = 1; i <= (nodes.size()-2)/2; i++){
+        for(unsigned k = 0; k < vehicles.size(); k++){
+            for(unsigned j = 0; j < nodes.size(); j++){
+                if(i != j){
+                    string term = buildTransitTerm(1, i, j, k, " + ");
+                    addTerm(cordeauConstraint3, term);
+                    if(charCounter>200){
+                        cordeauConstraint3.append("\n");
+                        charCounter = 0;       
+                    }
+                }
+            }
+            cordeauConstraint3.erase(cordeauConstraint3.size()-3);
+            cordeauConstraint3 += " - ";
+            for(unsigned j = 0; j < nodes.size(); j++){
+                if(i != j){
+                    if((((nodes.size()-2)/2))+i != j){
+                        string tempString;
+                        string term = buildTransitTerm(1, (nodes.size()-2)/2 +i, j, k, " - ");
+                        addTerm(cordeauConstraint3, term);
+                    }
+                }
+            }
+        cordeauConstraint3.erase(cordeauConstraint3.size()-3);
+        cordeauConstraint3 += " = 0\n";
+        charCounter = 0;
+        }
+    }
+    return cordeauConstraint3;
+}
+
+/*
+ * Constraint 4: routes begin at origin depot (node 0).
+ */
+string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles){
+    string cordeauConstraint4;
+    string operation = " + ";
+    for(unsigned k=0; k<vehicles.size(); k++){
+        for(unsigned j=1; j<nodes.size(); j++){
+            string term = buildTransitTerm(1, 0, j, k, " + ");
+            addTerm(cordeauConstraint4, term);
+        }
+        cordeauConstraint4.erase(cordeauConstraint4.size() - operation.size());
+        cordeauConstraint4 += " = 1\n";
+    }
+
+    return cordeauConstraint4;
+}
+
+/*
+ * Constraint 5: every pickup and dropoff node (1-2n) must have the same number of inbound and outbound edges
+ */
+string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles){
+    string cordeauConstraint5;
+    string operation = " + ";
+    string operation2 = " - ";
+
+    for (unsigned i = 1; i <= nodes.size()-2; i++) {
+        for (unsigned k = 0; k < vehicles.size(); k++) {
+            for (unsigned j = 0; j < nodes.size(); j++) {
+                if (i != j) {
+                    string term = buildTransitTerm(1, j, i, k, operation);
+                    addTerm(cordeauConstraint5, term);
+                }                                        
+            }
+            cordeauConstraint5.erase(cordeauConstraint5.size() - operation.size());
+            cordeauConstraint5 += operation2;
+            for (unsigned j = 0; j < nodes.size(); j++) {
+                if (i != j) {
+                    string term = buildTransitTerm(1, i, j, k, operation2);
+                    addTerm(cordeauConstraint5, term);
+                }
+            }
+            cordeauConstraint5.erase(cordeauConstraint5.size() - operation.size());
+            cordeauConstraint5 += " = 0\n";
+        }
+    }
+    return cordeauConstraint5;
+}
+
+/*
+ * Constraint 6: all vehicles end at destination depot
+ */
+string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
+    string cordeauConstraint6;
+    string operation = " + ";
+
+    for(unsigned k = 0; k < vehicles.size(); k++){
+        for(unsigned i=0; i < nodes.size(); i++){
+            string term = buildTransitTerm(1, i, nodes.size(), k, operation);
+            addTerm(cordeauConstraint6, term);
+        }
+        cordeauConstraint6.erase(cordeauConstraint6.size() - operation.size());
+        cordeauConstraint6 += " = 1\n";
+    }
+    return cordeauConstraint6;
+}
+
+/*
+ * Constraint 7: service at node j (destination) has to start after service at node i (corresponding origin) is finished and after the vehicle has driven from i to j
+ */
+string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
+    string cordeauConstraint7;
+    string addition = " + ";
+    for(unsigned i=0; i < nodes.size(); i++){
+        for(unsigned j=0; j < nodes.size(); j++){
+            if(i != j){
+                for(unsigned k=0; k < vehicles.size(); k++){
+                    int m = nodes[i].latestServiceTime + nodes[i].serviceDuration + getTransitTime(nodes[i], nodes[j]) - nodes[j].earliestServiceTime;
+                    if(m<0){
+                        m=0;
+                    }
+                    string x = "x" + i + j + k;
+                    string term = buildStartServiceTerm(1, i, k, addition);
+                    addTerm(cordeauConstraint7, term);
+                    
                 }
             }
         }
     }
-    return constraint;
+    return cordeauConstraint7;
+}
+
+string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
+    string CordeauConstraint8;
+
+    return CordeauConstraint8;
+}
+
+
+//boilerplate for Spyglass
+int getTransitTime(Node i, Node j){
+    return 10;
+}
+
+void addTerm(string &constraint, string term){
+    constraint += term;
+    int currentLineSize = constraint.size() - constraint.rfind("\n");
+    if(currentLineSize > 200){
+        constraint += "\n";
+    }
+}
+
+string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation){
+    string term;
+
+    term += to_string(coefficient);
+    term += " b";
+    term += to_string(nodeIndex);
+    term += to_string(vehicle);
+    term += operation;
+
+    return term;
+}
+
+string buildTransitTerm(int coefficient, int origin, int destination, int vehicle, string operation){
+    string term;
+
+    term += to_string(coefficient);
+    term += " x";
+    term += to_string(origin);
+    term += to_string(destination);
+    term += to_string(vehicle);
+    term += operation;
+
+    return term;
 }
