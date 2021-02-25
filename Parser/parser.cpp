@@ -64,8 +64,10 @@ string cordeaucordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles);
 string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles);
 string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles);
 string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles);
+string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles);
 int getTransitTime(Node i, Node j);
 
+string buildConstantTerm(int constant, string operation);
 string buildTransitTerm(int coefficient, int origin, int destination, int vehicle, string operation);
 string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation);
 void addTerm(string &constraint, string term);
@@ -295,18 +297,27 @@ void writeConstraints(std::string filePath, vector<Node> nodes, vector<Vehicle> 
     lpfile.open(filePath, ios_base::app);
     lpfile << "SUBJECT TO\n";
     constraint=cordeauConstraint2(nodes, vehicles);
+    lpfile << "\\Constraint 2\n";
     lpfile << constraint;
     lpfile << "\n";
     constraint = cordeaucordeauConstraint3(nodes, vehicles);
+    lpfile << "\\Constraint 3\n";
     lpfile << constraint;
     lpfile << "\n";
     constraint = cordeauConstraint4(nodes, vehicles);
+    lpfile << "\\Constraint 4\n";
     lpfile << constraint;
     lpfile << "\n";
     constraint = cordeauConstraint5(nodes, vehicles);
+    lpfile << "\\Constraint 5\n";
     lpfile << constraint;
     lpfile << "\n";
     constraint = cordeauConstraint6(nodes, vehicles);
+    lpfile << "\\Constraint 6\n";
+    lpfile << constraint;
+    lpfile << "\n";
+    constraint = cordeauConstraint7(nodes, vehicles);
+    lpfile << "\\Constraint 7\n";
     lpfile << constraint;
     lpfile << "\n";
     lpfile.close();
@@ -445,7 +456,8 @@ string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
  */
 string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
     string cordeauConstraint7;
-    string addition = " + ";
+    string addNextTerm = " + ";
+    string subtractNextTerm = " - ";
     for(unsigned i=0; i < nodes.size(); i++){
         for(unsigned j=0; j < nodes.size(); j++){
             if(i != j){
@@ -454,10 +466,20 @@ string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
                     if(m<0){
                         m=0;
                     }
-                    string x = "x" + i + j + k;
-                    string term = buildStartServiceTerm(1, i, k, addition);
+                    string term = buildStartServiceTerm(1, i, k, subtractNextTerm);
+                    addTerm(cordeauConstraint7, term);
+
+                    term = buildStartServiceTerm(1, j, k, addNextTerm);
                     addTerm(cordeauConstraint7, term);
                     
+                    term = buildTransitTerm(m, i, j, k, addNextTerm);
+                    addTerm(cordeauConstraint7, term);
+
+                    cordeauConstraint7.erase(cordeauConstraint7.size() - 3);
+                    cordeauConstraint7 += " <= ";
+                    int constant = (nodes[i].serviceDuration + getTransitTime(nodes[i], nodes[j]) - m) * -1;
+                    cordeauConstraint7 += to_string(constant);
+                    cordeauConstraint7 += "\n";
                 }
             }
         }
@@ -483,6 +505,15 @@ void addTerm(string &constraint, string term){
     if(currentLineSize > 200){
         constraint += "\n";
     }
+}
+
+string buildConstantTerm(int constant, string operation){
+    string term;
+    
+    term += to_string(constant);
+    term += operation;
+
+    return term;
 }
 
 string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation){
