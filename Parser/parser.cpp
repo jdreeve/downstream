@@ -36,7 +36,7 @@ class Node{
         Node(){
             name = "";
             earliestServiceTime = 0;
-            latestServiceTime = 0;
+            latestServiceTime = 1440;
             serviceDuration = 0;
             address = "";
             load = 0;
@@ -97,6 +97,7 @@ int main() {
     vector<Vehicle> vehicles;
     parseRequirements(nodes);
     getVehicles(vehicles);
+    printNodes(nodes);
     writeLPFile(LP_FILE, nodes, vehicles);
 }
 
@@ -106,7 +107,7 @@ void parseRequirements(vector<Node> &nodes){
     string line;
     ifstream requirements(REQUIREMENTS_FILE);
     //add origin depot node
-    Node depot = Node("Depot", 0, 0, 0, DEPOT_ADDRESS);
+    Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS);
     nodes.push_back(depot);
     while(getline(requirements, line)){//parse each line
         string delimiter = DELIMITER;
@@ -489,8 +490,8 @@ string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
     string operation = " + ";
 
     for(unsigned k = 0; k < vehicles.size(); k++){
-        for(unsigned i=0; i < nodes.size(); i++){
-            string term = buildThreeIndexedTerm(1, i, nodes.size(), k, operation);
+        for(unsigned i=0; i < nodes.size() - 1; i++){
+            string term = buildThreeIndexedTerm(1, i, nodes.size()-1, k, operation);
             writeLengthCappedString(cordeauConstraint6, term);
         }
         cordeauConstraint6.erase(cordeauConstraint6.size() - operation.size());
@@ -505,6 +506,8 @@ string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
 string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
     string cordeauConstraint7 = buildIndent(1);
     string addNextTerm = " + ";
+    string variable = "b";
+    int coefficient = 1;
     string subtractNextTerm = " - ";
     for(unsigned i=0; i < nodes.size(); i++){
         for(unsigned j=0; j < nodes.size(); j++){
@@ -514,11 +517,17 @@ string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
                     if(m<0){
                         m=0;
                     }
-                    string term = buildStartServiceTerm(1, i, k, subtractNextTerm);
+                    string term;
+
+                    term = buildTwoIndexedTerm(coefficient, variable, "i", i, "k", k);
                     writeLengthCappedString(cordeauConstraint7, term);
 
-                    term = buildStartServiceTerm(1, j, k, addNextTerm);
+                    writeLengthCappedString(cordeauConstraint7, " - ");
+
+                    term = buildTwoIndexedTerm(coefficient, variable, "i", j, "k", k);
                     writeLengthCappedString(cordeauConstraint7, term);
+                    
+                    writeLengthCappedString(cordeauConstraint7, " + ");
                     
                     term = buildThreeIndexedTerm(m, i, j, k, addNextTerm);
                     writeLengthCappedString(cordeauConstraint7, term);
@@ -541,7 +550,7 @@ string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
     string term;
     int w;
     int coefficient = 1;
-    string variable = "Q";
+    string variable = "q";
     for(unsigned i=0; i<nodes.size(); i++){
         for(unsigned j=0; j<nodes.size(); j++){
             if(i != j){
@@ -564,7 +573,8 @@ string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
 
                     writeLengthCappedString(cordeauConstraint8, " <= ");
 
-                    term = buildConstantTerm(-1 * w, "");
+                    int rightSide = w - nodes[j].load;
+                    term = buildConstantTerm(rightSide, "");
                     writeLengthCappedString(cordeauConstraint8, term);
 
                     term = "\n" + buildIndent(1);
@@ -581,7 +591,7 @@ string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
 string cordeauConstraint11(vector<Node> nodes, vector<Vehicle> vehicles){
     string cordeauConstraint11 = buildIndent(1);
     int coefficient = 1;
-    string variable = "B";
+    string variable = "b";
 
     for(unsigned i=0; i<nodes.size(); i++){
         for(unsigned k=0; k<vehicles.size(); k++){
@@ -620,7 +630,7 @@ string cordeauConstraint11(vector<Node> nodes, vector<Vehicle> vehicles){
 //Constraint 13: vehicles must not exceed max load.
 string cordeauConstraint13(vector<Node> nodes, vector<Vehicle> vehicles){
     string cordeauConstraint13 = buildIndent(1);
-    string variable = "Q";
+    string variable = "q";
     int coefficient = 1;
 
     for(unsigned i=0; i < nodes.size(); i++){
@@ -702,7 +712,7 @@ string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string
     string term;
 
     term += to_string(coefficient);
-    term += " B";
+    term += " b";
     term += to_string(nodeIndex);
     term += to_string(vehicle);
     term += operation;
