@@ -97,7 +97,6 @@ int main() {
     vector<Vehicle> vehicles;
     parseRequirements(nodes);
     getVehicles(vehicles);
-    printNodes(nodes);
     writeLPFile(LP_FILE, nodes, vehicles);
 }
 
