@@ -3,7 +3,8 @@
 #include <fstream>
 #include <string>
 #include "json.hpp"
-
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+#include "httplib.h"
 using namespace std;
 using json = nlohmann::json;
 

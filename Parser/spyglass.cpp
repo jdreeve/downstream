@@ -1,7 +1,6 @@
 #include "spyglass.hpp"
 #include <filesystem>
 #include <iostream>
-
 #define SPYGLASS_DATA_DIR  "./spyglass_data/"
 
 using json = nlohmann::json;
@@ -57,7 +56,16 @@ void Spyglass::getCourseInfo(){
 }
 
 void Spyglass::performGoogleMapsAPIQuery(){
+    string query_str = composeGoogleMapsAPIQuery();
+    const char* query = query_str.c_str();
+    cout << "figgin\n";
+    httplib::Client client("https://maps.googleapis.com");
+    cout << "piggin\n";
+    json j;
 
+    auto res = client.Get(query);
+    j = res->body;
+    cout << j;
 }
 
 string Spyglass::composeGoogleMapsAPIQuery(){
@@ -81,7 +89,7 @@ string Spyglass::composeGoogleMapsAPIQuery(){
         }
     }
     parameters = origins + "&" + destinations + "&" + apiKey;
-    query = "http://maps.googleapis.com/maps/api/distancematrix/json?" + parameters;
+    query = "/maps/api/distancematrix/json?" + parameters;
     return query;
 }
 

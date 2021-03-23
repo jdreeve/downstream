@@ -65,6 +65,7 @@ class Vehicle{
 };
 
 void parseRequirements(vector<Node> &nodes);
+int convert24HourTimeToMinutes(int timeIn24Hr);
 void getVehicles(vector<Vehicle> &vehicles);
 void writeLPFile(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles);
 string getObjective(vector<Node> nodes, vector<Vehicle> vehicles);
@@ -111,7 +112,9 @@ void parseRequirements(vector<Node> &nodes){
     while(getline(requirements, line)){//parse each line
         string delimiter = DELIMITER;
         string eventName;
+        int eventStartTimeIn24;
         int eventStartTime;
+        int eventFinishTimeIn24;
         int eventFinishTime;
         double eventLoad;
         string eventAddress;
@@ -131,12 +134,14 @@ void parseRequirements(vector<Node> &nodes){
         //get dropoff time
         tokenStart = tokenEnd + delimiter.length();
         tokenEnd = line.find(delimiter, tokenStart);
-        eventStartTime = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
+        eventStartTimeIn24 = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
+        eventStartTime = convert24HourTimeToMinutes(eventStartTimeIn24);
 
         //get pickup time
         tokenStart = tokenEnd + delimiter.length();
         tokenEnd = line.find(delimiter, tokenStart);
-        eventFinishTime = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
+        eventFinishTimeIn24 = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
+        eventFinishTime = convert24HourTimeToMinutes(eventFinishTimeIn24);
 
         //get address
         tokenStart = tokenEnd + delimiter.length();
@@ -198,6 +203,18 @@ void parseRequirements(vector<Node> &nodes){
     //nodes.insert(nodes.end(), origins.begin(), origins.end());
     //nodes.insert(nodes.end(), destinations.begin(), destinations.end());
     //nodes.push_back(FIRST) //add destination node
+}
+
+int convert24HourTimeToMinutes(int timeIn24Hr){
+    int minutes;
+    int minutesFrom24HrHours;
+    int minutesFrom24HrMinutes;
+
+    minutesFrom24HrHours = (timeIn24Hr / 100) * 60;
+    minutesFrom24HrMinutes = (timeIn24Hr % 100);
+    minutes = minutesFrom24HrHours + minutesFrom24HrMinutes;
+
+    return minutes;
 }
 
 void printNodes(vector<Node> nodes){

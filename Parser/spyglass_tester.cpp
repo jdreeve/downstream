@@ -82,6 +82,18 @@ int testSpyglassSetCourse(){
     return errors;
 }
 
+int testSpyglassGoogleMapsAPI(){
+    int errors = 0;
+
+    Spyglass testSpyglass = Spyglass();
+    string origin ="apiTestOrigin";
+    string destination = "apiTestDestination";
+    
+    testSpyglass.setCourse(origin, destination);
+
+    return errors;
+}
+
 int main(){
     int totalErrors = 0;
 
@@ -92,6 +104,8 @@ int main(){
     totalErrors += testSpyglassParameterizedConstructorValidDestination();
 
     totalErrors += testSpyglassSetCourse();
+
+    totalErrors += testSpyglassGoogleMapsAPI();
 
     cout << "Unit testing complete. Total errors: " << totalErrors << "\n";
     return 0;
