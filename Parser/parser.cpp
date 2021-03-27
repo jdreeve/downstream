@@ -2,12 +2,11 @@
 #include <fstream>
 #include <vector>
 #include <string>
-
+#include "node.hpp"
+#include "vehicle.hpp"
+#include "parser.hpp"
 #define DEBUG 1
 
-#define REQUIREMENTS_FILE "./requirements.csv"
-#define VEHICLES_FILE "./vehicles.csv"
-#define LP_FILE "requirements.lp"
 #define DELIMITER ","
 
 #define MAX_LINE 100
@@ -24,91 +23,16 @@
 
 using namespace std;
 
-class Node{
-    public:
-        string name;
-        int earliestServiceTime;
-        int latestServiceTime;
-        int serviceDuration;
-        string address;
-        int load;
 
-        Node(){
-            name = "";
-            earliestServiceTime = 0;
-            latestServiceTime = 1440;
-            serviceDuration = 0;
-            address = "";
-            load = 0;
-        }
-        Node(const string n, int early, int late, int ld, string addr){
-            name = n;
-            earliestServiceTime = early;
-            latestServiceTime = late;
-            load = ld;
-            address = addr;
-            serviceDuration = 0;
-        }
-};
 
-class Vehicle{
-    public:
-        string name;
-        int capacity;
-        int maxTourTime;
-
-        Vehicle(string n, int cap, int maxTime){
-            name = n;
-            capacity = cap;
-            maxTourTime = maxTime;
-        }
-};
-
-void parseRequirements(vector<Node> &nodes);
-int convert24HourTimeToMinutes(int timeIn24Hr);
-void getVehicles(vector<Vehicle> &vehicles);
-void writeLPFile(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles);
-string getObjective(vector<Node> nodes, vector<Vehicle> vehicles);
-void writeObjective(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles);
-void writeConstraints(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles);
-void writeBinarySection(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles);
-void writeTerminal(std::string filePath);
-void printNodes(vector<Node> nodes);
-void printVehicles(vector<Vehicle> vehicles);
-string cordeauConstraint2(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint11(vector<Node> nodes, vector<Vehicle> vehicles);
-string cordeauConstraint13(vector<Node> nodes, vector<Vehicle> vehicles);
-int getTransitTime(Node i, Node j);
-
-string buildConstantTerm(int constant, string operation);
-string buildThreeIndexedTerm(int coefficient, int origin, int destination, int vehicle, string operation);
-string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation);
-string buildTwoIndexedTerm(int coefficient, string variable, string index1Variable, int index1Value, string index2Variable, int index2Value);
-void writeLengthCappedString(string &constraint, string term);
-string buildIndent(int depth);
-
-int main() {
-    vector<Node> nodes;
-    vector<Vehicle> vehicles;
-    parseRequirements(nodes);
-    getVehicles(vehicles);
-    writeLPFile(LP_FILE, nodes, vehicles);
-}
-
-void parseRequirements(vector<Node> &nodes){
+void Parser::parseRequirements(string requirementsPath){
+    string line;
     vector<Node> origins;
     vector<Node> destinations;
-    string line;
-    ifstream requirements(REQUIREMENTS_FILE);
+    ifstream requirements(requirementsPath);
     //add origin depot node
     Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS);
-    nodes.push_back(depot);
+    this->nodes.push_back(depot);
     while(getline(requirements, line)){//parse each line
         string delimiter = DELIMITER;
         string eventName;
@@ -189,11 +113,11 @@ void parseRequirements(vector<Node> &nodes){
         destinations.push_back(temp);
     }
     //write origins onto nodes vector
-    nodes.insert(nodes.end(), origins.begin(), origins.end());
+    this->nodes.insert(nodes.end(), origins.begin(), origins.end());
     //write destinations onto nodes vector
-    nodes.insert(nodes.end(), destinations.begin(), destinations.end());
+    this->nodes.insert(nodes.end(), destinations.begin(), destinations.end());
     //add terminal depot node
-    nodes.push_back(depot);
+    this->nodes.push_back(depot);
 
     requirements.close();
     //vector<Client> client //stores current locations of clients
@@ -205,7 +129,7 @@ void parseRequirements(vector<Node> &nodes){
     //nodes.push_back(FIRST) //add destination node
 }
 
-int convert24HourTimeToMinutes(int timeIn24Hr){
+int Parser::convert24HourTimeToMinutes(int timeIn24Hr){
     int minutes;
     int minutesFrom24HrHours;
     int minutesFrom24HrMinutes;
@@ -217,19 +141,20 @@ int convert24HourTimeToMinutes(int timeIn24Hr){
     return minutes;
 }
 
-void printNodes(vector<Node> nodes){
+void Parser::printNodes(){
     cout << "<<<<Printing nodes>>>>\n";
-    for(unsigned i=0; i < nodes.size(); i++){
-        cout << "Name: " << nodes[i].name << "\n";
-        cout << "Early: " << nodes[i].earliestServiceTime << "\n";
-        cout << "Late: " << nodes[i].latestServiceTime << "\n";
-        cout << "Load: " << nodes[i].load << "\n";
-        cout << "Address: " << nodes[i].address << "\n";
+    for(unsigned i=0; i < this->nodes.size(); i++){
+        cout << "Name: " << this->nodes[i].name << "\n";
+        cout << "Early: " << this->nodes[i].earliestServiceTime << "\n";
+        cout << "Late: " << this->nodes[i].latestServiceTime << "\n";
+        cout << "Load: " << this->nodes[i].load << "\n";
+        cout << "Address: " << this->nodes[i].address << "\n";
     }
+    cout << "Total nodes: " << this->nodes.size() << "\n";
 }
 
-void getVehicles(vector<Vehicle> &vehicles){
-    ifstream vehicleFile(VEHICLES_FILE);
+void Parser::getVehicles(string vehiclePath){
+    ifstream vehicleFile(vehiclePath);
     string line;
     while(getline(vehicleFile, line)){//parse each line
         size_t tokenStart = 0;
@@ -249,23 +174,24 @@ void getVehicles(vector<Vehicle> &vehicles){
     }
 }
 
-void printVehicles(vector<Vehicle> vehicles){
+void Parser::printVehicles(){
     cout << "<<<<Printing vehicles>>>>\n";
     for(unsigned i=0; i < vehicles.size(); i++){
         cout << "Vehicle name: " << vehicles[i].name << "\n";
         cout << "Capacity: " << vehicles[i].capacity << "\n";
         cout << "Max tour time: " << vehicles[i].maxTourTime<< "\n";
     }
+    cout << "Total vehicles: " << vehicles.size() << "\n";
 }
 
-void writeLPFile(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles){
-    writeObjective(filePath, nodes, vehicles);
-    writeConstraints(filePath, nodes, vehicles);
-    writeBinarySection(filePath, nodes, vehicles);
+void Parser::writeLPFile(std::string filePath){
+    writeObjective(filePath);
+    writeConstraints(filePath);
+    writeBinarySection(filePath);
     writeTerminal(filePath);
 }
 
-string getObjective(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::getObjective(){
     string objective = buildIndent(1);
     string addition = " + ";
     for(unsigned i=0; i< nodes.size(); i++){
@@ -283,14 +209,14 @@ string getObjective(vector<Node> nodes, vector<Vehicle> vehicles){
     return objective;
 }
 
-string getBinaryVars(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::getBinaryVars(){
     string binaries;
 
     int charCounter = 0;
-    for(unsigned i=0; i< nodes.size(); i++){
+    for(unsigned i=0; i< this->nodes.size(); i++){
         for(unsigned j=0; j < nodes.size(); j++){
             if(i!=j){
-                for(unsigned k=0; k<vehicles.size(); k++){
+                for(unsigned k=0; k<this->vehicles.size(); k++){
                     string tempString;
                     tempString += "x";
                     tempString += "i" + to_string(i);
@@ -312,9 +238,9 @@ string getBinaryVars(vector<Node> nodes, vector<Vehicle> vehicles){
     return binaries;
 }
 
-void writeObjective(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles){
+void Parser::writeObjective(string filePath){
     string objective;
-    objective = getObjective(nodes, vehicles);
+    objective = getObjective();
     ofstream lpfile;
     lpfile.open(filePath);
     lpfile << "MINIMIZE\n";
@@ -323,8 +249,8 @@ void writeObjective(std::string filePath, vector<Node> nodes, vector<Vehicle> ve
     lpfile.close();
 }
 
-void writeBinarySection(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles){
-    string binaries = getBinaryVars(nodes, vehicles);
+void Parser::writeBinarySection(string filePath){
+    string binaries = getBinaryVars();
     ofstream lpfile;
     lpfile.open(filePath, ios_base::app);
     lpfile << "BINARY\n";
@@ -333,54 +259,54 @@ void writeBinarySection(std::string filePath, vector<Node> nodes, vector<Vehicle
     lpfile.close();
 }
 
-void writeTerminal(std::string filePath){
+void Parser::writeTerminal(string filePath){
     ofstream lpfile;
     lpfile.open(filePath, ios_base::app);
     lpfile << "END";
     lpfile.close();
 }
 
-void writeConstraints(std::string filePath, vector<Node> nodes, vector<Vehicle> vehicles){
+void Parser::writeConstraints(string filePath){
     string constraint;
     ofstream lpfile;
     lpfile.open(filePath, ios_base::app);
     lpfile << "SUBJECT TO\n";
-    constraint=cordeauConstraint2(nodes, vehicles);
+    constraint = cordeauConstraint2();
     lpfile << "\\Constraint 2\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint3(nodes, vehicles);
+    constraint = cordeauConstraint3();
     lpfile << "\\Constraint 3\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint4(nodes, vehicles);
+    constraint = cordeauConstraint4();
     lpfile << "\\Constraint 4\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint5(nodes, vehicles);
+    constraint = cordeauConstraint5();
     lpfile << "\\Constraint 5\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint6(nodes, vehicles);
+    constraint = cordeauConstraint6();
     lpfile << "\\Constraint 6\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint7(nodes, vehicles);
+    constraint = cordeauConstraint7();
     lpfile << "\\Constraint 7\n";
     lpfile << constraint;
     lpfile << "\n";
-    constraint = cordeauConstraint8(nodes, vehicles);
+    constraint = cordeauConstraint8();
     lpfile << "\\Constraint 8\n";
     lpfile << constraint;
     lpfile << "\n";
     //constraint 9: max ride time of user
     //constraint 10: max tour time of vehicle
-    constraint = cordeauConstraint11(nodes, vehicles);
+    constraint = cordeauConstraint11();
     lpfile << "\\Constraint 11\n";
     lpfile << constraint;
     lpfile << "\n";
     //constraint 12: travel time constraints
-    constraint = cordeauConstraint13(nodes, vehicles);
+    constraint = cordeauConstraint13();
     lpfile << "\\Constraint 13\n";
     lpfile << constraint;
     lpfile << "\n";
@@ -391,7 +317,7 @@ void writeConstraints(std::string filePath, vector<Node> nodes, vector<Vehicle> 
 /* 
  * Constraint 2: Visit every pickup location (i.e. serve every request exactly once)
  */
-string cordeauConstraint2(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint2(){
     string cordeauConstraint2 = buildIndent(1);
     string addition = " + ";
 
@@ -413,7 +339,7 @@ string cordeauConstraint2(vector<Node> nodes, vector<Vehicle> vehicles){
 /*
  * Constraint 3: The same vehicle must visit corresponding pickup and dropoff nodes.
  */
-string cordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint3(){
     string cordeauConstraint3 = buildIndent(1);
     string operation1 = " + ";
     string operation2 = " - ";
@@ -452,11 +378,11 @@ string cordeauConstraint3(vector<Node> nodes, vector<Vehicle> vehicles){
 /*
  * Constraint 4: routes begin at origin depot (node 0).
  */
-string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint4(){
     string cordeauConstraint4 = buildIndent(1);
     string operation = " + ";
-    for(unsigned k=0; k<vehicles.size(); k++){
-        for(unsigned j=1; j<nodes.size(); j++){
+    for(unsigned k=0; k<this->vehicles.size(); k++){
+        for(unsigned j=1; j<this->nodes.size(); j++){
             string term = buildThreeIndexedTerm(1, 0, j, k, " + ");
             writeLengthCappedString(cordeauConstraint4, term);
         }
@@ -470,7 +396,7 @@ string cordeauConstraint4(vector<Node> nodes, vector<Vehicle> vehicles){
 /*
  * Constraint 5: every pickup and dropoff node (1-2n) must have the same number of inbound and outbound edges
  */
-string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint5(){
     string cordeauConstraint5 = buildIndent(1);
     string operation = " + ";
     string operation2 = " - ";
@@ -501,7 +427,7 @@ string cordeauConstraint5(vector<Node> nodes, vector<Vehicle> vehicles){
 /*
  * Constraint 6: all vehicles end at destination depot
  */
-string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint6(){
     string cordeauConstraint6 = buildIndent(1);
     string operation = " + ";
 
@@ -519,7 +445,7 @@ string cordeauConstraint6(vector<Node> nodes, vector<Vehicle> vehicles){
 /*
  * Constraint 7: service at node j (destination) has to start after service at node i (corresponding origin) is finished and after the vehicle has driven from i to j
  */
-string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint7(){
     string cordeauConstraint7 = buildIndent(1);
     string addNextTerm = " + ";
     string variable = "b";
@@ -561,7 +487,7 @@ string cordeauConstraint7(vector<Node> nodes, vector<Vehicle> vehicles){
 }
 
 //Constraint 8: load on vehicle k at node i + load of node j <= k.capacity
-string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint8(){
     string cordeauConstraint8 = buildIndent(1);
     string term;
     int w;
@@ -604,7 +530,7 @@ string cordeauConstraint8(vector<Node> nodes, vector<Vehicle> vehicles){
 }
 
 //Constraint 11: nodes must be visited within their service time.
-string cordeauConstraint11(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint11(){
     string cordeauConstraint11 = buildIndent(1);
     int coefficient = 1;
     string variable = "b";
@@ -644,7 +570,7 @@ string cordeauConstraint11(vector<Node> nodes, vector<Vehicle> vehicles){
 }
 
 //Constraint 13: vehicles must not exceed max load.
-string cordeauConstraint13(vector<Node> nodes, vector<Vehicle> vehicles){
+string Parser::cordeauConstraint13(){
     string cordeauConstraint13 = buildIndent(1);
     string variable = "q";
     int coefficient = 1;
@@ -694,12 +620,12 @@ string cordeauConstraint13(vector<Node> nodes, vector<Vehicle> vehicles){
 }
 
 //boilerplate for Spyglass
-int getTransitTime(Node i, Node j){
+int Parser::getTransitTime(Node i, Node j){
     return 10;
 }
 
 
-void writeLengthCappedString(string &constraint, string augment){
+void Parser::writeLengthCappedString(string &constraint, string augment){
     constraint += augment;
     int currentLineSize = constraint.size() - constraint.rfind("\n");
     if(currentLineSize > MAX_LINE){
@@ -707,7 +633,7 @@ void writeLengthCappedString(string &constraint, string augment){
     }
 }
 
-string buildIndent(int depth){
+string Parser::buildIndent(int depth){
     string indent;
     for(int i=0; i < depth; i++){
         indent += "    ";
@@ -715,7 +641,7 @@ string buildIndent(int depth){
     return indent;
 }
 
-string buildConstantTerm(int constant, string operation){
+string Parser::buildConstantTerm(int constant, string operation){
     string term;
     
     term += to_string(constant);
@@ -724,7 +650,7 @@ string buildConstantTerm(int constant, string operation){
     return term;
 }
 
-string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation){
+string Parser::buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string operation){
     string term;
 
     term += to_string(coefficient);
@@ -736,7 +662,7 @@ string buildStartServiceTerm(int coefficient, int nodeIndex, int vehicle, string
     return term;
 }
 
-string buildTwoIndexedTerm(int coefficient, string variable, string index1Variable, int index1Value, string index2Variable, int index2Value){
+string Parser::buildTwoIndexedTerm(int coefficient, string variable, string index1Variable, int index1Value, string index2Variable, int index2Value){
     string term;
 
     term += to_string(coefficient);
@@ -748,7 +674,7 @@ string buildTwoIndexedTerm(int coefficient, string variable, string index1Variab
     return term;
 }
 
-string buildThreeIndexedTerm(int coefficient, int origin, int destination, int vehicle, string operation){
+string Parser::buildThreeIndexedTerm(int coefficient, int origin, int destination, int vehicle, string operation){
     string term;
 
     term += to_string(coefficient);

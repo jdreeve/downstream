@@ -21,15 +21,23 @@ class Spyglass{
     private:
         string origin;
         string destination;
+        string originPlaceID;
+        string destinationPlaceID;
         double travelDistance;
         double travelTime;
 
+        double convertSecondsToMinutes(double seconds);
         void getCourseInfo();
-        void performGoogleMapsAPIQuery();
-        string composeGoogleMapsAPIQuery();
+        json performGoogleMapsAPIQuery(string query);
+        void performGoogleMapsDistanceMatrixAPIQuery();
+        string composeGoogleMapsDistanceMatrixAPIQuery();
+        void performGoogleMapsPlacesAPIQuery();
+        string composeGoogleMapsPlacesAPIQuery(string location);
         bool findCourseInJSONFile();
         string composeJSONPath();
         bool getCourseFromJSONFile(string jsonPath);
+        json loadJSONFromFile(string filePath);
+        void writeJSONFile(json j);
         json appendToJSONObject(json original, json appendment);
         bool getCourseFromJSONObject(json j);
         void setOrigin(string origin);

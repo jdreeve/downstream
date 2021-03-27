@@ -2,7 +2,13 @@ CC = g++
 CFLAGS = -g -Wall
 LDFLAGS = -lssl -lcrypto
 
-all: parser test
+all: main test
+
+main: main.o parser.o spyglass.o
+	$(CC) $(CFLAGS) parser.o spyglass.o main.o -o parser $(LDFLAGS)
+
+main.o: main.cpp
+	$(CC) $(CFLAGS) -c main.cpp
 
 test: spyglass_tester
 
