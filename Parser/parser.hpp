@@ -2,6 +2,7 @@
 #define PARSER_H
 #include <vector>
 #include <string>
+#include "settings.hpp"
 #include "node.hpp"
 #include "vehicle.hpp"
 
@@ -9,11 +10,8 @@ using namespace std;
 
 class Parser{
     public:
-        Parser(){
-
-        }
-
-        Parser(string requirementsPath, string vehiclesPath){
+        Parser(string settingsPath, string requirementsPath, string vehiclesPath){
+            settings = DownstreamSettings(settingsPath);
             parseRequirements(requirementsPath);
             getVehicles(vehiclesPath);
         }
@@ -47,7 +45,7 @@ class Parser{
 		void writeLengthCappedString(string &constraint, string term);
 		string buildIndent(int depth);
 
-        private:
+            DownstreamSettings settings;
             vector<Node> nodes;
             vector<Vehicle> vehicles;
 };

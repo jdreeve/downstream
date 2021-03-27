@@ -5,6 +5,8 @@
 #include "node.hpp"
 #include "vehicle.hpp"
 #include "parser.hpp"
+#include "settings.hpp"
+
 #define DEBUG 1
 
 #define DELIMITER ","
@@ -15,10 +17,6 @@
 #define VEHICLE_CAPACITY 8
 #define VEHICLE_MAX_TIME 20000
 
-#define EARLY_ARRIVAL_WINDOW 10
-#define LATE_ARRIVAL_WINDOW 0
-#define SERVICE_DURATION 0
-#define MAX_WAIT 15
 #define DEPOT_ADDRESS "FIRST address goes here"
 
 using namespace std;
@@ -74,9 +72,9 @@ void Parser::parseRequirements(string requirementsPath){
 
         //create origin node for trip toEvent
         temp.address = depot.address;
-        temp.earliestServiceTime = eventStartTime - getTransitTime(depot, temp) - EARLY_ARRIVAL_WINDOW;
-        temp.latestServiceTime = eventStartTime - getTransitTime(depot, temp) + LATE_ARRIVAL_WINDOW;
-        temp.serviceDuration = SERVICE_DURATION;
+        temp.earliestServiceTime = eventStartTime - getTransitTime(depot, temp) - this->settings.getEarlyArrivalWindow();
+        temp.latestServiceTime = eventStartTime - getTransitTime(depot, temp) + this->settings.getLateArrivalWindow();
+        temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
         temp.name = eventName;
 
@@ -85,8 +83,8 @@ void Parser::parseRequirements(string requirementsPath){
         //create origin node for trip fromEvent
         temp.address = eventAddress;
         temp.earliestServiceTime = eventFinishTime;
-        temp.latestServiceTime = eventFinishTime + MAX_WAIT;
-        temp.serviceDuration = SERVICE_DURATION;
+        temp.latestServiceTime = eventFinishTime + this->settings.getMaxWait();
+        temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
         temp.name = eventName;
 
@@ -94,9 +92,9 @@ void Parser::parseRequirements(string requirementsPath){
 
         //create destination nodes for trip toEvent
         temp.address = eventAddress;
-        temp.earliestServiceTime = eventStartTime - EARLY_ARRIVAL_WINDOW;
-        temp.latestServiceTime = eventStartTime + LATE_ARRIVAL_WINDOW;
-        temp.serviceDuration = SERVICE_DURATION;
+        temp.earliestServiceTime = eventStartTime - this->settings.getEarlyArrivalWindow();
+        temp.latestServiceTime = eventStartTime + this->settings.getLateArrivalWindow();
+        temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
 
@@ -105,8 +103,8 @@ void Parser::parseRequirements(string requirementsPath){
         //origin node for trip fromEvent
         temp.address = depot.address;
         temp.earliestServiceTime = eventFinishTime + getTransitTime(depot, temp);
-        temp.latestServiceTime = eventFinishTime + getTransitTime(depot, temp) + MAX_WAIT;
-        temp.serviceDuration = SERVICE_DURATION;
+        temp.latestServiceTime = eventFinishTime + getTransitTime(depot, temp) + this->settings.getMaxWait();
+        temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
 
