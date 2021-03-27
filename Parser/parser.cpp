@@ -6,6 +6,7 @@
 #include "vehicle.hpp"
 #include "parser.hpp"
 #include "settings.hpp"
+#include "csv.hpp"
 
 #define DEBUG 1
 
@@ -31,44 +32,21 @@ void Parser::parseRequirements(string requirementsPath){
     //add origin depot node
     Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS);
     this->nodes.push_back(depot);
-    while(getline(requirements, line)){//parse each line
-        string delimiter = DELIMITER;
-        string eventName;
-        int eventStartTimeIn24;
+
+    string eventName;
+    int eventLoad;
+    int eventStartTimeIn24;
+    int eventFinishTimeIn24;
+    string eventAddress;
+   
+    io::CSVReader<5> requirementsCSVReader(requirementsPath);
+    while(requirementsCSVReader.read_row(eventName, eventLoad, eventStartTimeIn24, eventFinishTimeIn24, eventAddress)){
         int eventStartTime;
-        int eventFinishTimeIn24;
         int eventFinishTime;
-        double eventLoad;
-        string eventAddress;
-        size_t tokenStart = 0;
-        size_t tokenEnd = 0;
         Node temp = Node();
-        
-        //get name
-        tokenEnd = line.find(delimiter, tokenStart);
-        eventName = line.substr(tokenStart, tokenEnd - tokenStart);
-        
-        //get load
-        tokenStart = tokenEnd + delimiter.length();
-        tokenEnd = line.find(delimiter, tokenStart);
-        eventLoad = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
 
-        //get dropoff time
-        tokenStart = tokenEnd + delimiter.length();
-        tokenEnd = line.find(delimiter, tokenStart);
-        eventStartTimeIn24 = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
         eventStartTime = convert24HourTimeToMinutes(eventStartTimeIn24);
-
-        //get pickup time
-        tokenStart = tokenEnd + delimiter.length();
-        tokenEnd = line.find(delimiter, tokenStart);
-        eventFinishTimeIn24 = stoi(line.substr(tokenStart, tokenEnd - tokenStart));
         eventFinishTime = convert24HourTimeToMinutes(eventFinishTimeIn24);
-
-        //get address
-        tokenStart = tokenEnd + delimiter.length();
-        tokenEnd = line.find(delimiter, tokenStart);
-        eventAddress = line.substr(tokenStart, line.size());
 
         //create origin node for trip toEvent
         temp.address = depot.address;
@@ -90,7 +68,7 @@ void Parser::parseRequirements(string requirementsPath){
 
         origins.push_back(temp);
 
-        //create destination nodes for trip toEvent
+        //create destination node for trip toEvent
         temp.address = eventAddress;
         temp.earliestServiceTime = eventStartTime - this->settings.getEarlyArrivalWindow();
         temp.latestServiceTime = eventStartTime + this->settings.getLateArrivalWindow();
@@ -100,7 +78,7 @@ void Parser::parseRequirements(string requirementsPath){
 
         destinations.push_back(temp);
 
-        //origin node for trip fromEvent
+        //create destination node for trip fromEvent
         temp.address = depot.address;
         temp.earliestServiceTime = eventFinishTime + getTransitTime(depot, temp);
         temp.latestServiceTime = eventFinishTime + getTransitTime(depot, temp) + this->settings.getMaxWait();
@@ -110,6 +88,7 @@ void Parser::parseRequirements(string requirementsPath){
 
         destinations.push_back(temp);
     }
+
     //write origins onto nodes vector
     this->nodes.insert(nodes.end(), origins.begin(), origins.end());
     //write destinations onto nodes vector
