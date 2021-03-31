@@ -21,6 +21,8 @@ class Parser{
 		void writeLPFile(string filePath);
 		string getObjective();
         string getBinaryVars();
+        vector<Vehicle> getParsedVehicles();
+        vector<Node> getParsedNodes();
 		void writeObjective(string filePath);
 		void writeConstraints(string filePath);
 		void writeBinarySection(string filePath);

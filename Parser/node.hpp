@@ -12,6 +12,7 @@ class Node{
         int serviceDuration;
         string address;
         int load;
+        int nodeID;
 
         Node(){
             name = "";
@@ -21,13 +22,14 @@ class Node{
             address = "";
             load = 0;
         }
-        Node(const string n, int early, int late, int ld, string addr){
-            name = n;
-            earliestServiceTime = early;
-            latestServiceTime = late;
-            load = ld;
-            address = addr;
-            serviceDuration = 0;
+        Node(const string n, int early, int late, int ld, string addr, int nodeID){
+            this->name = n;
+            this->earliestServiceTime = early;
+            this->latestServiceTime = late;
+            this->load = ld;
+            this->address = addr;
+            this->serviceDuration = 0;
+            this->nodeID = nodeID;
         }
 };
 #endif

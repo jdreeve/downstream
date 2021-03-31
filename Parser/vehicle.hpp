@@ -9,6 +9,7 @@ class Vehicle{
         string name;
         int capacity;
         int maxTourTime;
+        int ID;
 
         Vehicle(string n, int cap, int maxTime){
             name = n;

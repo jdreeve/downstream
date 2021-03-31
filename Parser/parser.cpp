@@ -7,6 +7,7 @@
 #include "parser.hpp"
 #include "settings.hpp"
 #include "csv.hpp"
+#include "spyglass.hpp"
 
 #define DEBUG 1
 
@@ -30,7 +31,7 @@ void Parser::parseRequirements(string requirementsPath){
     vector<Node> destinations;
     ifstream requirements(requirementsPath);
     //add origin depot node
-    Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS);
+    Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS, 0);
     this->nodes.push_back(depot);
 
     string eventName;
@@ -55,7 +56,6 @@ void Parser::parseRequirements(string requirementsPath){
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
         temp.name = eventName;
-
         origins.push_back(temp);
 
         //create origin node for trip fromEvent
@@ -65,7 +65,6 @@ void Parser::parseRequirements(string requirementsPath){
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
         temp.name = eventName;
-
         origins.push_back(temp);
 
         //create destination node for trip toEvent
@@ -75,7 +74,6 @@ void Parser::parseRequirements(string requirementsPath){
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
-
         destinations.push_back(temp);
 
         //create destination node for trip fromEvent
@@ -85,7 +83,6 @@ void Parser::parseRequirements(string requirementsPath){
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
-
         destinations.push_back(temp);
     }
 
@@ -95,6 +92,10 @@ void Parser::parseRequirements(string requirementsPath){
     this->nodes.insert(nodes.end(), destinations.begin(), destinations.end());
     //add terminal depot node
     this->nodes.push_back(depot);
+
+    for(unsigned i=0; i<nodes.size(); i++){
+        nodes[i].nodeID = i;
+    }
 
     requirements.close();
     //vector<Client> client //stores current locations of clients
@@ -133,6 +134,7 @@ void Parser::printNodes(){
 void Parser::getVehicles(string vehiclePath){
     ifstream vehicleFile(vehiclePath);
     string line;
+    int vehicleID = 0;
     while(getline(vehicleFile, line)){//parse each line
         size_t tokenStart = 0;
         size_t tokenEnd = 0;
@@ -147,8 +149,18 @@ void Parser::getVehicles(string vehiclePath){
         capacity = stoi(line.substr(tokenStart, line.size()));
 
         Vehicle temp(vehicleName, capacity, VEHICLE_MAX_TIME);
+        temp.ID = vehicleID;
+        vehicleID++;
         vehicles.push_back(temp);
     }
+}
+
+vector<Vehicle> Parser::getParsedVehicles(){
+    return this->vehicles;
+}
+
+vector<Node> Parser::getParsedNodes(){
+    return this->nodes;
 }
 
 void Parser::printVehicles(){
@@ -598,7 +610,8 @@ string Parser::cordeauConstraint13(){
 
 //boilerplate for Spyglass
 int Parser::getTransitTime(Node i, Node j){
-    return 10;
+    Spyglass spyglass = Spyglass(i.address, j.address);
+    return spyglass.getTravelTime();
 }
 
 
