@@ -5,13 +5,14 @@
 #include "json.hpp"
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
+#include "config.hpp"
 using namespace std;
 using json = nlohmann::json;
 
 class Spyglass{
     public:
         Spyglass();
-        Spyglass(string origin, string destination);
+        Spyglass(string origin, string destination, DownstreamConfig config);
         void setCourse(string origin, string destination);
         double getTravelDistance();
         double getTravelTime();
@@ -19,6 +20,7 @@ class Spyglass{
         string getDestination();
 
     private:
+        DownstreamConfig config;
         string origin;
         string destination;
         string originPlaceID;

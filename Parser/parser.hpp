@@ -2,6 +2,7 @@
 #define PARSER_H
 #include <vector>
 #include <string>
+#include "config.hpp"
 #include "settings.hpp"
 #include "node.hpp"
 #include "vehicle.hpp"
@@ -10,10 +11,11 @@ using namespace std;
 
 class Parser{
     public:
-        Parser(string settingsPath, string requirementsPath, string vehiclesPath){
-            settings = DownstreamSettings(settingsPath);
-            parseRequirements(requirementsPath);
-            getVehicles(vehiclesPath);
+        Parser(DownstreamConfig config){
+            this->config = config;
+            this->settings = DownstreamSettings(this->config.solverSettingsFilePath);
+            parseRequirements(this->config.requirementsFilePath);
+            getVehicles(this->config.vehiclesFilePath);
         }
 		void parseRequirements(string requirementsPath);
 		int convert24HourTimeToMinutes(int timeIn24Hr);
@@ -47,9 +49,10 @@ class Parser{
 		void writeLengthCappedString(string &constraint, string term);
 		string buildIndent(int depth);
 
-            DownstreamSettings settings;
-            vector<Node> nodes;
-            vector<Vehicle> vehicles;
+        DownstreamConfig config;
+        DownstreamSettings settings;
+        vector<Node> nodes;
+        vector<Vehicle> vehicles;
 };
 
 #endif

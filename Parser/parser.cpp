@@ -15,15 +15,11 @@
 
 #define MAX_LINE 100
 
-#define VEHICLE_COUNT 10
-#define VEHICLE_CAPACITY 8
-#define VEHICLE_MAX_TIME 20000
+#define VEHICLE_MAX_TIME 200000
 
 #define DEPOT_ADDRESS "FIRST address goes here"
 
 using namespace std;
-
-
 
 void Parser::parseRequirements(string requirementsPath){
     string line;
@@ -610,7 +606,7 @@ string Parser::cordeauConstraint13(){
 
 //boilerplate for Spyglass
 int Parser::getTransitTime(Node i, Node j){
-    Spyglass spyglass = Spyglass(i.address, j.address);
+    Spyglass spyglass = Spyglass(i.address, j.address, this->config);
     return spyglass.getTravelTime();
 }
 

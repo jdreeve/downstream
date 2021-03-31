@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -g -Wall
 LDFLAGS = -lssl -lcrypto -lpthread
 
-all: parser_exec scheduler_exec test
+all: parser_exec scheduler_exec
 
 parser_exec: parser parser_exec.o
 	$(CC) $(CFLAGS) parser_exec.o parser.o settings.o spyglass.o -o parser $(LDFLAGS)
@@ -23,16 +23,8 @@ schedule_exec.o: schedule_exec.cpp
 main.o: main.cpp
 	$(CC) $(CFLAGS) -c main.cpp
 
-test: spyglass_tester
-
-spyglass_tester: spyglass.o spyglass_tester.o
-	$(CC) $(CFLAGS) spyglass_tester.o spyglass.o -o spyglass_tester $(LDFLAGS)
-
 schedule_writer.o: schedule_writer.cpp
 	$(CC) $(CFLAGS) -c schedule_writer.cpp
-
-spyglass_tester.o: spyglass_tester.cpp
-	$(CC) $(CFLAGS) -c spyglass_tester.cpp
 
 parser.o: parser.cpp
 	$(CC) $(CFLAGS) -c parser.cpp

@@ -1,8 +1,6 @@
 #include "spyglass.hpp"
 #include <filesystem>
 #include <iostream>
-#define SPYGLASS_DATA_DIR  "./spyglass_data/"
-#define API_KEY "AIzaSyAI0KIG3_m5GB_5rUlUiQJfwQzkEulnueM"
 using json = nlohmann::json;
 
 //Constructors
@@ -15,7 +13,8 @@ Spyglass::Spyglass(){
     this->travelTime = -1.0;
 }
 
-Spyglass::Spyglass(string origin, string destination){
+Spyglass::Spyglass(string origin, string destination, DownstreamConfig config){
+    this->config = config;
     this->origin = origin;
     this->destination = destination;
     this->travelDistance = -1;
@@ -108,7 +107,7 @@ string Spyglass::composeGoogleMapsPlacesAPIQuery(string location){
 
     query += "&key=";
 
-    query += API_KEY;
+    query += this->config.spyglassAPIKey;
 
     return query;
 }
@@ -152,7 +151,7 @@ string Spyglass::composeGoogleMapsDistanceMatrixAPIQuery(){
     string origins = "origins=";
     string destinations = "destinations=";
     string apiKey = "key=";
-    apiKey += API_KEY;
+    apiKey += this->config.spyglassAPIKey;
     string parameters;
 
     origins += "place_id:";
@@ -201,7 +200,7 @@ string Spyglass::composeJSONPath(){
     }
     string jsonPath = "";
 
-    jsonPath = SPYGLASS_DATA_DIR;
+    jsonPath = this->config.spyglassDataPath;
     jsonPath += this->originPlaceID;
     jsonPath += ".json";
     

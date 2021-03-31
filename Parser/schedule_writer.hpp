@@ -50,7 +50,6 @@ class ScheduleWriter{
         void printRoutes();
         void printRoute(unsigned index);
         void writeScheduleFile(string filePath);
-        void writeRouteToFile(Route route);
 
     private:
         string solutionPath;
