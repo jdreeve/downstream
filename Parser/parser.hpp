@@ -12,13 +12,18 @@ using namespace std;
 class Parser{
     public:
         Parser(DownstreamConfig config){
+            cout << "Initializing parser\n";
             this->config = config;
             this->settings = DownstreamSettings(this->config.solverSettingsFilePath);
+            cout << "Parsing requirements\n";
             parseRequirements(this->config.requirementsFilePath);
+            cout << "Loading vehicles\n";
             getVehicles(this->config.vehiclesFilePath);
+            cout << "Loading vehicles complete.\n";
         }
 		void parseRequirements(string requirementsPath);
 		int convert24HourTimeToMinutes(int timeIn24Hr);
+        int addTimeOffset(int timeIn24Hr);
 		void getVehicles(string vehiclesPath);
 		void writeLPFile(string filePath);
 		string getObjective();

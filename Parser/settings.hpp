@@ -24,8 +24,10 @@ class DownstreamSettings{
         double getLateArrivalWindow();
         double getServiceDuration();
         double getMaxWait();
+        string getVehicleDepotAddress();
 
     private:
+        string vehicleDepotAddress;
         string settingsPath;
         double earlyArrivalWindow;
         double lateArrivalWindow;

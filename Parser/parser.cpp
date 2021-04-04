@@ -17,7 +17,7 @@
 
 #define VEHICLE_MAX_TIME 200000
 
-#define DEPOT_ADDRESS "FIRST address goes here"
+#define DEPOT_ADDRESS "32 Knox Rd Ridgecrest NC 28770"
 
 using namespace std;
 
@@ -27,7 +27,7 @@ void Parser::parseRequirements(string requirementsPath){
     vector<Node> destinations;
     ifstream requirements(requirementsPath);
     //add origin depot node
-    Node depot = Node("Depot", 0, 1440, 0, DEPOT_ADDRESS, 0);
+    Node depot = Node("Depot", 0, 1440, 0, this->settings.getVehicleDepotAddress(), 0);
     this->nodes.push_back(depot);
 
     string eventName;
@@ -47,8 +47,9 @@ void Parser::parseRequirements(string requirementsPath){
 
         //create origin node for trip toEvent
         temp.address = depot.address;
-        temp.earliestServiceTime = eventStartTime - getTransitTime(depot, temp) - this->settings.getEarlyArrivalWindow();
-        temp.latestServiceTime = eventStartTime - getTransitTime(depot, temp) + this->settings.getLateArrivalWindow();
+        int transitTime = getTransitTime(depot, temp);
+        temp.earliestServiceTime = eventStartTime - transitTime- this->settings.getEarlyArrivalWindow();
+        temp.latestServiceTime = eventStartTime - transitTime + this->settings.getLateArrivalWindow();
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
         temp.name = eventName;
@@ -74,8 +75,8 @@ void Parser::parseRequirements(string requirementsPath){
 
         //create destination node for trip fromEvent
         temp.address = depot.address;
-        temp.earliestServiceTime = eventFinishTime + getTransitTime(depot, temp);
-        temp.latestServiceTime = eventFinishTime + getTransitTime(depot, temp) + this->settings.getMaxWait();
+        temp.earliestServiceTime = eventFinishTime + transitTime;
+        temp.latestServiceTime = eventFinishTime + transitTime + this->settings.getMaxWait();
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
@@ -107,12 +108,17 @@ int Parser::convert24HourTimeToMinutes(int timeIn24Hr){
     int minutes;
     int minutesFrom24HrHours;
     int minutesFrom24HrMinutes;
-
-    minutesFrom24HrHours = (timeIn24Hr / 100) * 60;
-    minutesFrom24HrMinutes = (timeIn24Hr % 100);
+    int offsetTimeIn24Hr = this->addTimeOffset(timeIn24Hr);
+    minutesFrom24HrHours = (offsetTimeIn24Hr / 100) * 60;
+    minutesFrom24HrMinutes = (offsetTimeIn24Hr % 100);
     minutes = minutesFrom24HrHours + minutesFrom24HrMinutes;
 
     return minutes;
+}
+
+int Parser::addTimeOffset(int timeIn24Hr){
+    int timeWithOffset = timeIn24Hr + 200;
+    return timeWithOffset;
 }
 
 void Parser::printNodes(){
@@ -128,6 +134,21 @@ void Parser::printNodes(){
 }
 
 void Parser::getVehicles(string vehiclePath){
+    cout << "Getting vehicles\n";
+    io::CSVReader<2> vehicleCSVReader(vehiclePath);
+    string vehicleName;
+    int capacity;
+    int vehicleID = -1;
+    while(vehicleCSVReader.read_row(vehicleName, capacity)){
+        vehicleID++;
+        Vehicle temp(vehicleName, capacity, VEHICLE_MAX_TIME);
+        temp.ID = vehicleID;
+        this->vehicles.push_back(temp);
+        cout << "Vehicle created\n";
+    }
+
+
+/*
     ifstream vehicleFile(vehiclePath);
     string line;
     int vehicleID = 0;
@@ -148,7 +169,8 @@ void Parser::getVehicles(string vehiclePath){
         temp.ID = vehicleID;
         vehicleID++;
         vehicles.push_back(temp);
-    }
+
+    }*/
 }
 
 vector<Vehicle> Parser::getParsedVehicles(){
@@ -170,9 +192,13 @@ void Parser::printVehicles(){
 }
 
 void Parser::writeLPFile(std::string filePath){
+    cout << "Writing objective\n";
     writeObjective(filePath);
+    cout << "Writing constraints\n";
     writeConstraints(filePath);
+    cout << "Writing binaries\n";
     writeBinarySection(filePath);
+    cout << "Writing terminal section\n";
     writeTerminal(filePath);
 }
 
@@ -256,41 +282,50 @@ void Parser::writeConstraints(string filePath){
     ofstream lpfile;
     lpfile.open(filePath, ios_base::app);
     lpfile << "SUBJECT TO\n";
+    cout << "Writing constraint 2\n";
     constraint = cordeauConstraint2();
     lpfile << "\\Constraint 2\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 3\n";
     constraint = cordeauConstraint3();
     lpfile << "\\Constraint 3\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 4\n";
     constraint = cordeauConstraint4();
     lpfile << "\\Constraint 4\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 5\n";
     constraint = cordeauConstraint5();
     lpfile << "\\Constraint 5\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 6\n";
     constraint = cordeauConstraint6();
     lpfile << "\\Constraint 6\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 7\n";
     constraint = cordeauConstraint7();
     lpfile << "\\Constraint 7\n";
     lpfile << constraint;
     lpfile << "\n";
+    cout << "Writing constraint 8\n";
     constraint = cordeauConstraint8();
     lpfile << "\\Constraint 8\n";
     lpfile << constraint;
     lpfile << "\n";
     //constraint 9: max ride time of user
     //constraint 10: max tour time of vehicle
+    cout << "Writing constraint 11\n";
     constraint = cordeauConstraint11();
     lpfile << "\\Constraint 11\n";
     lpfile << constraint;
     lpfile << "\n";
     //constraint 12: travel time constraints
+    cout << "Writing constraint 13\n";
     constraint = cordeauConstraint13();
     lpfile << "\\Constraint 13\n";
     lpfile << constraint;
@@ -439,8 +474,9 @@ string Parser::cordeauConstraint7(){
     for(unsigned i=0; i < nodes.size(); i++){
         for(unsigned j=0; j < nodes.size(); j++){
             if(i != j){
+                int transitTime = getTransitTime(nodes[i], nodes[j]);
                 for(unsigned k=0; k < vehicles.size(); k++){
-                    int m = nodes[i].latestServiceTime + nodes[i].serviceDuration + getTransitTime(nodes[i], nodes[j]) - nodes[j].earliestServiceTime;
+                    int m = nodes[i].latestServiceTime + nodes[i].serviceDuration + transitTime - nodes[j].earliestServiceTime;
                     if(m<0){
                         m=0;
                     }
@@ -461,9 +497,13 @@ string Parser::cordeauConstraint7(){
 
                     cordeauConstraint7.erase(cordeauConstraint7.size() - 3);
                     cordeauConstraint7 += " <= ";
-                    int constant = (nodes[i].serviceDuration + getTransitTime(nodes[i], nodes[j]) - m) * -1;
+                    int constant = (nodes[i].serviceDuration + transitTime - m) * -1;
                     cordeauConstraint7 += to_string(constant);
                     cordeauConstraint7 += "\n" + buildIndent(1);
+                    cout << "Nodes count: " << nodes.size() << "\n";
+                    cout << "Vehicles count: " << vehicles.size() << "\n";
+                    cout << "i: " << i << "  j: " << j << "  k: " << k << "\n";
+                    cout << "         ******************       \n";
                 }
             }
         }
@@ -606,8 +646,11 @@ string Parser::cordeauConstraint13(){
 
 //boilerplate for Spyglass
 int Parser::getTransitTime(Node i, Node j){
+    cout << "Creating Spyglass\n";
     Spyglass spyglass = Spyglass(i.address, j.address, this->config);
-    return spyglass.getTravelTime();
+    int travelTime = spyglass.getTravelTime();
+    cout << "Returning " << travelTime << "\n";
+    return travelTime;
 }
 
 

@@ -10,6 +10,12 @@ void DownstreamSettings::loadSettings(string path){
     string variable;
     double value;
 
+    string address;
+    settingsCSVReader.read_row(variable, address);
+        if(variable == "Vehicle Depot Address"){
+            this->vehicleDepotAddress = address;
+        }
+
     while(settingsCSVReader.read_row(variable, value)){
         if(variable == "Early Arrival Window"){
             this->earlyArrivalWindow = value;
@@ -48,4 +54,8 @@ double DownstreamSettings::getServiceDuration(){
 
 double DownstreamSettings::getMaxWait(){
     return this->maxWait;
+}
+
+string DownstreamSettings::getVehicleDepotAddress(){
+    return this->vehicleDepotAddress;
 }
