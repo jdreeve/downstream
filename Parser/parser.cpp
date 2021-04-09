@@ -76,7 +76,7 @@ void Parser::parseRequirements(string requirementsPath){
         //create destination node for trip fromEvent
         temp.address = depot.address;
         temp.earliestServiceTime = eventFinishTime + transitTime;
-        temp.latestServiceTime = eventFinishTime + transitTime + this->settings.getMaxWait();
+        temp.latestServiceTime = eventFinishTime + transitTime + (this->settings.getMaxWait())*2;
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad * -1;
         temp.name = eventName;
@@ -622,7 +622,6 @@ string Parser::cordeauConstraint13(){
             term = "\n" + buildIndent(1);
             writeLengthCappedString(cordeauConstraint13, term);
 
-
             q = nodes[i].load;
             if(q<0){
                 q=0;
@@ -646,11 +645,16 @@ string Parser::cordeauConstraint13(){
 
 //boilerplate for Spyglass
 int Parser::getTransitTime(Node i, Node j){
+    /*
     cout << "Creating Spyglass\n";
     Spyglass spyglass = Spyglass(i.address, j.address, this->config);
     int travelTime = spyglass.getTravelTime();
+    if(travelTime > 20){
+        travelTime = 20;
+    }
     cout << "Returning " << travelTime << "\n";
-    return travelTime;
+    return travelTime;*/
+    return 10;
 }
 
 

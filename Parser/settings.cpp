@@ -17,6 +17,9 @@ void DownstreamSettings::loadSettings(string path){
         }
 
     while(settingsCSVReader.read_row(variable, value)){
+        if(variable=="Vehicle Depot Address"){
+            this->vehicleDepotAddress = value;
+        }
         if(variable == "Early Arrival Window"){
             this->earlyArrivalWindow = value;
         }

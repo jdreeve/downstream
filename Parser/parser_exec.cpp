@@ -8,5 +8,6 @@ int main() {
     Parser parser(config);
     cout << "Parser created\n";
     parser.writeLPFile(config.lpFilePath);
+    parser.printNodes();
     cout << "LP file written\n";
 }
