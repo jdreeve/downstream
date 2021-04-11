@@ -36,7 +36,7 @@ void Parser::parseRequirements(string requirementsPath){
     int eventFinishTimeIn24;
     string eventAddress;
    
-    io::CSVReader<5> requirementsCSVReader(requirementsPath);
+    io::CSVReader<5, io::trim_chars<' '>, io::double_quote_escape<',','\"'> > requirementsCSVReader(requirementsPath);
     while(requirementsCSVReader.read_row(eventName, eventLoad, eventStartTimeIn24, eventFinishTimeIn24, eventAddress)){
         int eventStartTime;
         int eventFinishTime;
@@ -135,7 +135,7 @@ void Parser::printNodes(){
 
 void Parser::getVehicles(string vehiclePath){
     cout << "Getting vehicles\n";
-    io::CSVReader<2> vehicleCSVReader(vehiclePath);
+    io::CSVReader<2, io::trim_chars<' '>, io::double_quote_escape<',','\"'> > vehicleCSVReader(vehiclePath);
     string vehicleName;
     int capacity;
     int vehicleID = -1;
@@ -147,8 +147,7 @@ void Parser::getVehicles(string vehiclePath){
         cout << "Vehicle created\n";
     }
 
-
-/*
+    /*
     ifstream vehicleFile(vehiclePath);
     string line;
     int vehicleID = 0;

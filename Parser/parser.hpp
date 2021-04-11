@@ -2,6 +2,7 @@
 #define PARSER_H
 #include <vector>
 #include <string>
+#include <iostream>
 #include "config.hpp"
 #include "settings.hpp"
 #include "node.hpp"
