@@ -9,6 +9,8 @@
 #include "spyglass.hpp"
 #include "ortools/linear_solver/linear_solver.h"
 
+#define DEBUG 1
+
 using namespace operations_research;
 
 
@@ -20,7 +22,7 @@ class ORSolver{
             this->vehicles = parser.getParsedVehicles();
             this->nodes = parser.getParsedNodes();
             this->config = parser.config;
-            this->n = (nodes.size()-2)/2;
+            this->n = (this->nodes.size()-2)/2;
 
             this->infinity = solver->infinity();
 
@@ -62,12 +64,22 @@ class ORSolver{
             LOG(INFO) << "Solution:";
             LOG(INFO) << "Optimal objective value = " << this->objective->Value();
 
+            if(DEBUG){
+                cout << "n = " << this->n << "\n";
+                cout << "nodes.size() = " << this->nodes.size() << "\n";
+                cout << "x.size() = " << x.size() << "\n";
+                cout << "x[0].size() = " << x[0].size() << "\n";
+                cout << "x[0][0].size() = " << x[0][0].size() << "\n";
+            }
             for(unsigned i=0; i < x.size(); i++){
                 for(unsigned j=0; j < x[i].size(); j++){
                     for(unsigned k = 0; k < x[i][j].size(); k++){
-                        int solutionValue = x[i][j][k]->solution_value();
-                        if(solutionValue != 0){
-                            LOG(INFO) << "x[" << i << "][" << j << "][" << k << "] = " << solutionValue;
+                        if( x[i][j][k] != NULL){
+                            int solutionValue = x[i][j][k]->solution_value();
+                            if(solutionValue != 0){
+                                LOG(INFO) << "x[" << i << "][" << j << "][" << k << "] = " << solutionValue;
+                                LOG(INFO) << "\tb[" << i << "][" << k << "] = " << b[i][k]->solution_value();
+                            }
                         }
                     }
                 }
@@ -130,8 +142,8 @@ class ORSolver{
 
         //Cordeau constraint 2: visit every pickup node
         void imposeCordeauConstraint2(){
-            MPConstraint* cordeauConstraint2 = solver->MakeRowConstraint(1, 1, "cordeauConstraint2");
             for(unsigned i=1; i <= n; i++){
+                MPConstraint* cordeauConstraint2 = solver->MakeRowConstraint(1, 1, "cordeauConstraint2");
                 for(unsigned k = 0; k < this->vehicles.size(); k++){
                     for(unsigned j=0; j < this->nodes.size(); j++){
                         if(i!=j){
@@ -139,6 +151,11 @@ class ORSolver{
                         }
                     }
                 }
+            }
+            if(DEBUG){
+                cout << "DEBUG: imposeCordeauConstraint2() reporting:\n";
+                cout << "\t" << "Constraints: " << this->solver->NumConstraints() << "\n";
+                cout << "\t" << "Reference: should be " << this->n << "\n\n";
             }
         }
 
@@ -161,6 +178,9 @@ class ORSolver{
                     }
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 3 reporting.\n\n";
+            }
         }
 
         //Cordeau constraint 4: Every vehicle's route begins at origin depot
@@ -170,6 +190,9 @@ class ORSolver{
                 for(unsigned j = 1; j < this->nodes.size(); j++){
                         cordeauConstraint4->SetCoefficient(x[0][j][k], 1);
                 }
+            }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 4 reporting.\n\n";
             }
         }
 
@@ -186,6 +209,9 @@ class ORSolver{
                     }
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 5 reporting.\n\n";
+            }
         }
 
         //Cordeau constraint 6: all vehicles end their routes at the destination depot
@@ -195,6 +221,9 @@ class ORSolver{
                 for(unsigned i = 0; i < (this->nodes.size() - 1); i++){
                     cordeauConstraint6->SetCoefficient(x[i][(2*n)+1][k], 1);
                 }
+            }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 6 reporting.\n\n";
             }
         }
 
@@ -222,6 +251,9 @@ class ORSolver{
                     }
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 7 reporting.\n\n";
+            }
         }
 
         //Cordeau constraint 8: load on vehicle k at node i + load of node j <= capacity of vehicle k. Implemented as linearized Cordeau constraint 16.
@@ -247,6 +279,9 @@ class ORSolver{
                     }
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 8 reporting.\n\n";
+            }
         }
 
         //Cordeau constraint 11: nodes must be visited within their service time window.
@@ -259,6 +294,9 @@ class ORSolver{
                     cordeauConstraint11->SetCoefficient(b[i][k], 1);
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 11 reporting.\n\n";
+            }
         }
 
         //Cordeau constraint 13: vehicle load must be between 0 and vehicle capacity.
@@ -270,6 +308,9 @@ class ORSolver{
                     MPConstraint* cordeauConstraint13 = solver->MakeRowConstraint(0, upperBound, "");
                     cordeauConstraint13->SetCoefficient(q[i][k], 1);
                 }
+            }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 13 reporting.\n\n";
             }
         }
 
@@ -285,11 +326,15 @@ class ORSolver{
                     }
                 }
             }
+            if(DEBUG){
+                cout << "DEBUG: Cordeau constraint 14 reporting.\n\n";
+            }
         }
 
 
 
         void generateObjectiveFunction(){
+            int counter = 0;
             this->objective = solver->MutableObjective();
             for(unsigned i=0; i < this->nodes.size(); i++){
                 for(unsigned j=0; j < this->nodes.size(); j++){
@@ -297,17 +342,27 @@ class ORSolver{
                         unsigned transitTime = getTransitTime(this->nodes[i], this->nodes[j]);
                         for(unsigned k=0; k<vehicles.size(); k++){
                             objective->SetCoefficient(x[i][j][k], transitTime);
+                            if(DEBUG){
+                                counter++;
+                            }
                         }
                     }
                 }
             }
             objective->SetMinimization();
+            if(DEBUG){
+                cout << "DEBUG: generateObjectiveFunction() \n\tObjective function has " << counter << "terms\n";
+                cout << "\tReference: should be nodes.size() * (nodes.size()-1) * k = " << this->nodes.size() * (this->nodes.size()-1) * (this->vehicles.size()) << "\n\n";
+            }
         }
 
         int getTransitTime(Node i, Node j){
+            /*
             Spyglass spyglass = Spyglass(i.address, j.address, this->config);
             int travelTime = spyglass.getTravelTime();
             return travelTime;
+            */
+            return 1;
         }
 
 };

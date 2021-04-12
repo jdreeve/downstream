@@ -1,5 +1,6 @@
 #include <iostream>
 #include "parser.hpp"
+#include "orsolver.hpp"
 
 int main() {
     cout << "Starting up\n";
@@ -7,7 +8,9 @@ int main() {
     cout << "Config created\n";
     Parser parser(config);
     cout << "Parser created\n";
-    parser.writeLPFile(config.lpFilePath);
     parser.printNodes();
-    cout << "LP file written\n";
+    ORSolver solver(parser);
+    solver.generateModel();
+    solver.solveModel();
+    solver.displaySolution();
 }

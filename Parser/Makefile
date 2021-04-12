@@ -1,18 +1,18 @@
 CC = g++
 CFLAGS = -g -Wall
-LDFLAGS = -lssl -lcrypto -lpthread
+LDFLAGS = -lssl -lcrypto -lpthread -lortools
 
 all: parser_exec scheduler_exec
 
 parser_exec: parser parser_exec.o
-	$(CC) $(CFLAGS) parser_exec.o parser.o settings.o spyglass.o -o parser $(LDFLAGS)
+	$(CC) $(CFLAGS) parser_exec.o settings.o spyglass.o -o parser $(LDFLAGS)
 
 scheduler_exec: schedule_writer schedule_exec.o
-	$(CC) $(CFLAGS) schedule_exec.o schedule_writer.o parser.o settings.o spyglass.o -o scheduler $(LDFLAGS)
+	$(CC) $(CFLAGS) schedule_exec.o schedule_writer.o settings.o spyglass.o -o scheduler $(LDFLAGS)
 
-schedule_writer: schedule_writer.o parser.o settings.o;
+schedule_writer: schedule_writer.o settings.o;
 
-parser: parser.o settings.o spyglass.o; 
+parser: settings.o spyglass.o; 
 
 parser_exec.o: parser_exec.cpp
 	$(CC) $(CFLAGS) -c parser_exec.cpp
@@ -25,9 +25,6 @@ main.o: main.cpp
 
 schedule_writer.o: schedule_writer.cpp
 	$(CC) $(CFLAGS) -c schedule_writer.cpp
-
-parser.o: parser.cpp
-	$(CC) $(CFLAGS) -c parser.cpp
 
 settings.o: settings.cpp
 	$(CC) $(CFLAGS) -c settings.cpp
