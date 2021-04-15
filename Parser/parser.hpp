@@ -21,14 +21,10 @@ using namespace std;
 class Parser{
     public:
         Parser(DownstreamConfig config){
-            cout << "Initializing parser\n";
             this->config = config;
             this->settings = DownstreamSettings(this->config.solverSettingsFilePath);
-            cout << "Parsing requirements\n";
             parseRequirements(this->config.requirementsFilePath);
-            cout << "Loading vehicles\n";
             getVehicles(this->config.vehiclesFilePath);
-            cout << "Loading vehicles complete.\n";
         }
 void parseRequirements(string requirementsPath){
     string line;
@@ -128,7 +124,6 @@ int addTimeOffset(int timeIn24Hr){
     return timeWithOffset;
 }
 void getVehicles(string vehiclePath){
-    cout << "Getting vehicles\n";
     io::CSVReader<2, io::trim_chars<' '>, io::double_quote_escape<',','\"'> > vehicleCSVReader(vehiclePath);
     string vehicleName;
     int capacity;
@@ -138,7 +133,6 @@ void getVehicles(string vehiclePath){
         Vehicle temp(vehicleName, capacity, VEHICLE_MAX_TIME);
         temp.ID = vehicleID;
         this->vehicles.push_back(temp);
-        cout << "Vehicle created\n";
     }
 }
 void writeLPFile(std::string filePath){

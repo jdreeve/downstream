@@ -9,7 +9,7 @@
 #include "spyglass.hpp"
 #include "ortools/linear_solver/linear_solver.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 using namespace operations_research;
 
