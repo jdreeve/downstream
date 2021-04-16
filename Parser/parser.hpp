@@ -24,6 +24,7 @@ class Parser{
             this->config = config;
             this->settings = DownstreamSettings(this->config.solverSettingsFilePath);
             parseRequirements(this->config.requirementsFilePath);
+            this->n = (this->nodes.size()-2)/2;
             getVehicles(this->config.vehiclesFilePath);
         }
 void parseRequirements(string requirementsPath){
@@ -280,15 +281,20 @@ void writeTerminal(string filePath){
 void printNodes(){
     cout << "<<<<Printing nodes>>>>\n";
     for(unsigned i=0; i < this->nodes.size(); i++){
-        cout << "Name: " << this->nodes[i].name << "\n";
-        cout << "Early: " << this->nodes[i].earliestServiceTime << "\n";
-        cout << "Late: " << this->nodes[i].latestServiceTime << "\n";
-        cout << "Load: " << this->nodes[i].load << "\n";
-        cout << "Address: " << this->nodes[i].address << "\n";
-        cout << "\n";
+        printNode(i);
     }
     cout << "Total nodes: " << this->nodes.size() << "\n";
 }
+
+void printNode(unsigned index){
+    cout << "Name: " << this->nodes[index].name << "\n";
+    cout << "Early: " << this->nodes[index].earliestServiceTime << "\n";
+    cout << "Late: " << this->nodes[index].latestServiceTime << "\n";
+    cout << "Load: " << this->nodes[index].load << "\n";
+    cout << "Address: " << this->nodes[index].address << "\n";
+    cout << "\n";
+}
+
 void printVehicles(){
     cout << "<<<<Printing vehicles>>>>\n";
     for(unsigned i=0; i < vehicles.size(); i++){
@@ -672,10 +678,104 @@ string buildIndent(int depth){
     return indent;
 }
 
+void splitNodeVector(){
+
+    vector<int> splitWindows = {0, 480, 960, 99999}; 
+    vector<Node> bufferOriginsVector;
+    vector<Node> bufferDestinationsVector;
+    for(auto timeWindowsIterator = splitWindows.begin()+1; timeWindowsIterator < splitWindows.end(); timeWindowsIterator++){
+        vector<Node> thisNodeVector;
+        vector<Node> originsVector;
+        vector<Node> destinationsVector;
+        thisNodeVector.push_back(this->nodes[0]);//add origin depot node
+        if(bufferOriginsVector.size() > 0){
+            //add buffered nodes to origins vector and erase origins buffer
+            originsVector.insert(originsVector.end(), bufferOriginsVector.begin(), bufferOriginsVector.end());
+            bufferOriginsVector.resize(0);
+            //add buffered nodes to destinations vector and erase destinations buffer
+            destinationsVector.insert(destinationsVector.end(), bufferDestinationsVector.begin(), bufferDestinationsVector.end());
+            bufferDestinationsVector.resize(0);
+        }
+        for(unsigned i = 1; i <= this->n; i++){
+            if((nodes[i].earliestServiceTime < *timeWindowsIterator) && (nodes[i].earliestServiceTime >= *(timeWindowsIterator-1) )){
+                if((originsVector.size() == 18)){
+                    cout << "Parser warning: the shift from ";
+                    cout << *timeWindowsIterator << "to " << *(timeWindowsIterator-1);
+                    cout << " contains 10 or more trips. This may result in lengthy computation time (10-20 min)." << "\n";
+                    originsVector.push_back(nodes[i]);
+                    destinationsVector.push_back(nodes[i+n]);
+                }
+                else if(originsVector.size() == 24){
+                    if(bufferOriginsVector.size() == 0){
+                        cout << "Parser warning: the shift from ";
+                        cout << *timeWindowsIterator << "to " << *(timeWindowsIterator-1);
+                        cout << "has reached the maximum feasible size of 12 trips. To manage solver time, further trips will be processed with the next shift batch.\n";
+                    }
+                    bufferOriginsVector.push_back(nodes[i]);
+                    bufferDestinationsVector.push_back(nodes[i+n]);
+                }
+                else{
+                    originsVector.push_back(nodes[i]);
+                    destinationsVector.push_back(nodes[i+n]);
+                }
+            }
+        }
+        thisNodeVector.insert(thisNodeVector.end(), originsVector.begin(), originsVector.end());
+        thisNodeVector.insert(thisNodeVector.end(), destinationsVector.begin(), destinationsVector.end());
+        thisNodeVector.push_back(this->nodes[this->nodes.size()-1]);//add destination depot node
+        this->splitNodeVectors.push_back(thisNodeVector);
+    }
+    cout << "Origins buffer size: " << bufferOriginsVector.size() << "\n";
+    //add buffered nodes
+    while(bufferOriginsVector.size() > 0){
+        vector<Node> origins;
+        vector<Node> destinations;
+        vector<Node> overflowNodesVector;
+        overflowNodesVector.push_back(this->nodes[0]); //add origin depot node
+        if(bufferOriginsVector.size() > 12){//if more than one additional vector needed
+        //add first 12 nodes in overflow buffers to overflowNodesVector
+            overflowNodesVector.insert(overflowNodesVector.end(), bufferOriginsVector.begin(), (bufferOriginsVector.begin()+11));
+            overflowNodesVector.insert(overflowNodesVector.end(), bufferDestinationsVector.begin(), (bufferDestinationsVector.begin()+11));
+
+        //erase first 12 nodes in overflow buffers
+            bufferOriginsVector.erase(bufferOriginsVector.begin(), (bufferOriginsVector.begin()+11));
+            bufferDestinationsVector.erase(bufferDestinationsVector.begin(), (bufferDestinationsVector.begin()+11));
+        }
+        else{
+            overflowNodesVector.insert(overflowNodesVector.end(), bufferOriginsVector.begin(), bufferOriginsVector.end());
+            overflowNodesVector.insert(overflowNodesVector.end(), bufferDestinationsVector.begin(), bufferDestinationsVector.end());
+            bufferOriginsVector.resize(0);
+        }
+        overflowNodesVector.push_back(this->nodes[this->nodes.size()-1]);//add destination depot node
+        this->splitNodeVectors.push_back(overflowNodesVector);
+        cout << "Added vector to splitVector\n";
+    }
+}
+
+void printSplitNodeVectors(){
+    cout << "<<<<<<<<<<Printing split vectors>>>>>>>>>>>\n";
+    for(auto iterator = this->splitNodeVectors.begin(); iterator < this->splitNodeVectors.end(); iterator++){
+        vector<Node> thisVector = *iterator;
+        cout << "Next vector:\n";
+        for(auto jterator = thisVector.begin(); jterator < thisVector.end(); jterator++){
+            cout << "\t" <<  "Name: " << jterator->name << "\n";
+            cout << "\t" <<  "Early: " << jterator->earliestServiceTime << "\n";
+            cout << "\t" <<  "Late: " << jterator->latestServiceTime << "\n";
+            cout << "\t" <<  "Load: " << jterator->load << "\n";
+            cout << "\t" <<  "Address: " << jterator->address << "\n";
+            cout << "\t" <<  "\n";
+        }
+        cout << "Nodes in this vector: " << thisVector.size() << "\n";
+    }
+    cout << "Total nodes: " << this->nodes.size() << "\n";
+}
+
         DownstreamConfig config;
         DownstreamSettings settings;
         vector<Node> nodes;
+        vector< vector<Node> > splitNodeVectors;
         vector<Vehicle> vehicles;
+        unsigned n;
 };
 
 #endif
