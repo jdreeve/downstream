@@ -27,6 +27,11 @@ class Parser{
             this->n = (this->nodes.size()-2)/2;
             getVehicles(this->config.vehiclesFilePath);
         }
+
+        vector<Node> getSplitNodeVector(unsigned nodeVectorIndex){
+            return this->splitNodeVectors[nodeVectorIndex];
+        }
+
 void parseRequirements(string requirementsPath){
     string line;
     vector<Node> origins;
@@ -121,7 +126,7 @@ int convert24HourTimeToMinutes(int timeIn24Hr){
     return minutes;
 }
 int addTimeOffset(int timeIn24Hr){
-    int timeWithOffset = timeIn24Hr + 200;
+    int timeWithOffset = timeIn24Hr + 300;
     return timeWithOffset;
 }
 void getVehicles(string vehiclePath){
@@ -610,16 +615,10 @@ string cordeauConstraint13(){
     return cordeauConstraint13;
 }
 int getTransitTime(Node i, Node j){
-    /*
-    cout << "Creating Spyglass\n";
-    Spyglass spyglass = Spyglass(i.address, j.address, this->config);
-    int travelTime = spyglass.getTravelTime();
-    if(travelTime > 20){
-        travelTime = 20;
-    }
-    cout << "Returning " << travelTime << "\n";
-    return travelTime;*/
-    return 10;
+//    Spyglass spyglass = Spyglass(i.address, j.address, this->config);
+//    int travelTime = spyglass.getTravelTime();
+//    return travelTime;
+    return 1;
 }
 		
 string buildConstantTerm(int constant, string operation){

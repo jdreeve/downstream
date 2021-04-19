@@ -35,7 +35,6 @@ double Spyglass::getTravelDistance(){
 }
 
 double Spyglass::getTravelTime(){
-    cout << "getTravelTime called\n";
     if(this->origin == this->destination){
         return 0;
     }
@@ -62,7 +61,6 @@ string Spyglass::getDestination(){
 //Private methods
 
 void Spyglass::getCourseInfo(){
-    cout << "getCourseInfo beginning\n";
     if(this->origin == this->destination){
         this->travelTime = 0;
         this->travelDistance = 0;
@@ -78,7 +76,6 @@ void Spyglass::getCourseInfo(){
 }
 
 void Spyglass::performGoogleMapsPlacesAPIQuery(){
-    cout << "performGoogleMapsAPIQuery beginning for origin "<< this->origin << "\n";
     string originQuery = composeGoogleMapsPlacesAPIQuery(this->origin);
  
     json jOrigin = performGoogleMapsAPIQuery(originQuery);
@@ -92,7 +89,6 @@ void Spyglass::performGoogleMapsPlacesAPIQuery(){
     }
 
     this->originPlaceID = jOrigin["candidates"][0]["place_id"].get<std::string>();
-    cout << "Origin place ID set to " << this->originPlaceID << "\n";
 
     string destinationQuery = composeGoogleMapsPlacesAPIQuery(this->destination);
     json jDestination = performGoogleMapsAPIQuery(destinationQuery);
@@ -105,11 +101,9 @@ void Spyglass::performGoogleMapsPlacesAPIQuery(){
         cout << "WARNING: multiple candidate locations found for address " << this->destination << " -- proceeding with first candidate " << jDestination["candidates"][0] << "\n";
     }
     this->destinationPlaceID = jDestination["candidates"][0]["place_id"].get<std::string>();
-    cout << "Destination place ID set to " << this->destinationPlaceID << "\n";
 }
 
 string Spyglass::composeGoogleMapsPlacesAPIQuery(string location){
-    cout << "composeGoogleMapsPlacesAPIQuery beginning\n";
     string query;
 
     query = "maps.googleapis.com/maps/api/place/findplacefromtext/json?input=";
@@ -136,12 +130,10 @@ json Spyglass::performGoogleMapsAPIQuery(string query){
 }
 
 void Spyglass::performGoogleMapsDistanceMatrixAPIQuery(){
-    cout << "Distance matrix API query starting\n";
     string query = composeGoogleMapsDistanceMatrixAPIQuery();
 
     json j = performGoogleMapsAPIQuery(query);
 
-    cout << "Status: " << j["status"] << "\n";
     if(j["status"] == "OK"){
     json original = loadJSONFromFile(composeJSONPath());
     j = appendToJSONObject(original, j);
@@ -158,7 +150,6 @@ void Spyglass::writeJSONFile(json j){
 
     file << j;
 
-    cout << "Wrote to file " << filePath << "\n";
     file.close();
 }
 
@@ -207,7 +198,6 @@ bool Spyglass::findCourseInJSONFile(){
 
     string jsonPath = composeJSONPath();
     courseFound = getCourseFromJSONFile(jsonPath);
-    cout << "findCourseInJSONFile returns " << courseFound << "\n";
     return courseFound;
 }
 
@@ -229,7 +219,6 @@ bool Spyglass::getCourseFromJSONFile(string jsonPath){
     bool courseFound = false;
     json j;
     ifstream jsonFile;
-    cout << "getCourseFromJSONFile checking path " << jsonPath << "\n";
     jsonFile.open(jsonPath);
     if(jsonFile.fail()){
         performGoogleMapsDistanceMatrixAPIQuery();

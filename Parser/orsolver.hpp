@@ -1,12 +1,15 @@
 #ifndef ORSOLVER_H
 #define ORSOLVER_H
 
+#include <utility>
+
 #include "config.hpp"
 #include "settings.hpp"
 #include "node.hpp"
 #include "vehicle.hpp"
 #include "parser.hpp"
 #include "spyglass.hpp"
+#include "edge.hpp"
 #include "ortools/linear_solver/linear_solver.h"
 
 #define DEBUG 0
@@ -21,6 +24,34 @@ class ORSolver{
             this->solver = MPSolver::CreateSolver("SCIP");
             this->vehicles = parser.getParsedVehicles();
             this->nodes = parser.getParsedNodes();
+            this->config = parser.config;
+            this->n = (this->nodes.size()-2)/2;
+
+            this->infinity = solver->infinity();
+
+            //allocate decision variable vector
+            x.resize(nodes.size());
+            for(unsigned i=0; i < this->nodes.size(); i++){
+                x[i].resize(nodes.size());
+
+                for(unsigned j=0; j < this->nodes.size(); j++){
+                    x[i][j].resize(vehicles.size());
+                }
+            }
+
+            //allocate service start times vector and load vector
+            b.resize(nodes.size());
+            q.resize(nodes.size());
+            for(unsigned i=0; i < this->nodes.size(); i++){
+                b[i].resize(vehicles.size());
+                q[i].resize(vehicles.size());
+            }
+        }
+
+        ORSolver(Parser parser, unsigned nodeVectorIndex){
+            this->solver = MPSolver::CreateSolver("SCIP");
+            this->vehicles = parser.getParsedVehicles();
+            this->nodes = parser.getSplitNodeVector(nodeVectorIndex);
             this->config = parser.config;
             this->n = (this->nodes.size()-2)/2;
 
@@ -86,7 +117,74 @@ class ORSolver{
             }
         }
 
-        void saveSolution();
+        void generateSchedule(){
+            //open schedule file for writing
+            //close schedule file without writing (to erase it)
+            ofstream scheduleFile;
+            scheduleFile.open(this->config.scheduleFilePath, std::ofstream::app);
+            for(unsigned k = 0; k < this->vehicles.size(); k++){//for each vehicle
+                vector< pair<unsigned, unsigned> > vehicleRouteByIndex;
+                //identify first edge
+                for(unsigned j=0; j < this->nodes.size(); j++){
+                    if(x[0][j][k] == NULL){
+                        continue;
+                    }
+                    int solutionValue = x[0][j][k]->solution_value();
+                    if(solutionValue == 1){
+                        pair<unsigned, unsigned> thisEdge(0, j);
+                        vehicleRouteByIndex.push_back(thisEdge);
+                        break;
+                    }
+                }
+                //if first edge goes to terminal depot, vehicle is unused, continue to next vehicle
+                if(vehicleRouteByIndex[0].second == (this->nodes.size()-1)){
+                    continue;
+                }
+                //if first edge goes to some node other than terminal depot, find route
+                else{
+                    while(vehicleRouteByIndex.size() > 0 && (vehicleRouteByIndex[vehicleRouteByIndex.size()-1].second != (this->nodes.size()-1))){//while vehicle has not reached terminal depot
+                        int currentDestination = vehicleRouteByIndex[vehicleRouteByIndex.size()-1].second;
+                    for(unsigned j = 0; j < this->nodes.size(); j++){
+                        if(x[currentDestination][j][k] == NULL){
+                            continue;
+                        }
+                        int solutionValue = x[currentDestination][j][k]->solution_value();
+                        if(solutionValue == 1){
+                            pair<int, int> thisEdge(currentDestination, j);
+                            vehicleRouteByIndex.push_back(thisEdge);
+                            }
+                        }
+                    }
+                }
+                //open schedule file for appending
+                //append line: Vehicle [k]
+                string line = "Vehicle " + to_string(k) + "\n";
+                scheduleFile << line;
+                for(unsigned i=0; i < vehicleRouteByIndex.size(); i++){//for each edge
+                    pair<int,int> thisEdgeIndices = vehicleRouteByIndex[i];
+
+                    //don't print edges ending at FIRST
+                    unsigned originIndex = thisEdgeIndices.first;
+                    unsigned destinationIndex = thisEdgeIndices.second;
+                    Node destinationNode = this->nodes[destinationIndex];
+                    if(destinationNode.address == this->nodes[0].address){
+                        continue;
+                    }
+
+                    int bValueDeparture = b[originIndex][k]->solution_value();
+                    int bValueArrival = b[destinationIndex][k]->solution_value();
+                    int departureTime = convertBValueTo24Hr(bValueDeparture);
+                    int arrivalTime = convertBValueTo24Hr(bValueArrival);
+                    string address = destinationNode.address;
+                    string name = destinationNode.name;
+
+                    string line = "Departing: " + to_string(departureTime) + "," + "Address: " + address + "," + "Arriving: " + to_string(arrivalTime) + "," + "Passengers: " + name + "\n";
+                    scheduleFile << line;
+                }
+                scheduleFile << "\n";
+            }
+            scheduleFile.close();
+        }
 
     private:
         DownstreamConfig config;
@@ -112,7 +210,7 @@ class ORSolver{
         void populateStartTimeVariables(){
             for(unsigned i=0; i < this->nodes.size(); i++){
                 for(unsigned k = 0; k < this->vehicles.size(); k++){
-                    b[i][k] = this->solver->MakeIntVar(-1440, 2880, "");
+                    b[i][k] = this->solver->MakeIntVar(-9999, 9999, "");
                 }
             }
         }
@@ -357,14 +455,42 @@ class ORSolver{
         }
 
         int getTransitTime(Node i, Node j){
-            /*
-            Spyglass spyglass = Spyglass(i.address, j.address, this->config);
-            int travelTime = spyglass.getTravelTime();
-            return travelTime;
-            */
+ //           Spyglass spyglass = Spyglass(i.address, j.address, this->config);
+ //           int travelTime = spyglass.getTravelTime();
+ //           if(travelTime == 0){
+ //               travelTime = 1;
+ //           }
+//                return travelTime;
             return 1;
         }
 
+int convertBValueTo24Hr(int bValue){
+    int time24Hr = convertMinutesTo24HrTime(bValue);
+    time24Hr = removeTimeOffset(time24Hr);
+    return time24Hr;
+}
+
+int convertMinutesTo24HrTime(int timeInMinutes){
+    int hours;
+    int minutes;
+    int timeIn24Hr;
+
+    hours = timeInMinutes/60;
+    hours *= 100;
+
+    minutes = timeInMinutes % 60;
+
+    timeIn24Hr = hours + minutes;
+
+    return timeIn24Hr;
+}
+
+int removeTimeOffset(int timeIn24Hr){
+    int timeMinusOffset = timeIn24Hr - 300;
+    return timeMinusOffset;
+}
+
 };
+
 
 #endif
