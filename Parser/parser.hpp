@@ -38,7 +38,7 @@ void parseRequirements(string requirementsPath){
     vector<Node> destinations;
     ifstream requirements(requirementsPath);
     //add origin depot node
-    Node depot = Node("Depot", 0, 1440, 0, this->settings.getVehicleDepotAddress(), 0);
+    Node depot = Node("Depot", 0, 2880, 0, this->settings.getVehicleDepotAddress(), 0);
     this->nodes.push_back(depot);
 
     string eventName;
@@ -679,7 +679,7 @@ string buildIndent(int depth){
 
 void splitNodeVector(){
 
-    vector<int> splitWindows = {0, 480, 960, 99999}; 
+    vector<int> splitWindows = {-99999, 480, 960, 99999}; 
     vector<Node> bufferOriginsVector;
     vector<Node> bufferDestinationsVector;
     for(auto timeWindowsIterator = splitWindows.begin()+1; timeWindowsIterator < splitWindows.end(); timeWindowsIterator++){

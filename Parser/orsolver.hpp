@@ -12,7 +12,7 @@
 #include "edge.hpp"
 #include "ortools/linear_solver/linear_solver.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 using namespace operations_research;
 
@@ -210,7 +210,7 @@ class ORSolver{
         void populateStartTimeVariables(){
             for(unsigned i=0; i < this->nodes.size(); i++){
                 for(unsigned k = 0; k < this->vehicles.size(); k++){
-                    b[i][k] = this->solver->MakeIntVar(-9999, 9999, "");
+                    b[i][k] = this->solver->MakeIntVar(-infinity, infinity, "");
                 }
             }
         }
@@ -338,8 +338,15 @@ class ORSolver{
                             if(m < 0){
                                 m = 0;
                             }
+                            if(DEBUG){
+                                cout << "DEBUG: m = " << to_string(m) << "\n";
+                            }
+
                             int upperBound = m - nodes[i].serviceDuration - transitTime;
 
+                            if(DEBUG){
+                                cout << "DEBUG: upperBound = " << to_string(upperBound) << "\n";
+                            }
                             MPConstraint* cordeauConstraint7 = solver->MakeRowConstraint(-infinity, upperBound, "");
                             cordeauConstraint7->SetCoefficient(b[i][k], 1);
                             cordeauConstraint7->SetCoefficient(b[j][k], -1);
