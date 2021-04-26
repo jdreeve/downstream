@@ -57,9 +57,9 @@ void parseRequirements(string requirementsPath){
         eventFinishTime = convert24HourTimeToMinutes(eventFinishTimeIn24);
 
         //create origin node for trip toEvent
-        temp.address = depot.address;
+        temp.address = eventAddress;
         int transitTime = getTransitTime(depot, temp);
-        temp.earliestServiceTime = eventStartTime - transitTime- this->settings.getEarlyArrivalWindow();
+        temp.earliestServiceTime = eventStartTime - transitTime - this->settings.getEarlyArrivalWindow();
         temp.latestServiceTime = eventStartTime - transitTime + this->settings.getLateArrivalWindow();
         temp.serviceDuration = this->settings.getServiceDuration();
         temp.load = eventLoad;
@@ -615,10 +615,10 @@ string cordeauConstraint13(){
     return cordeauConstraint13;
 }
 int getTransitTime(Node i, Node j){
-//    Spyglass spyglass = Spyglass(i.address, j.address, this->config);
-//    int travelTime = spyglass.getTravelTime();
-//    return travelTime;
-    return 1;
+    Spyglass spyglass = Spyglass(i.address, j.address, this->config);
+    int travelTime = spyglass.getTravelTime();
+    return travelTime;
+//    return 1;
 }
 		
 string buildConstantTerm(int constant, string operation){
@@ -677,8 +677,26 @@ string buildIndent(int depth){
     return indent;
 }
 
-void splitNodeVector(){
+void splitNodeVector(){/*
+    vector<Node> thisNodeVector;
+    vector<Node> originsVector;
+    vector<Node> destinationsVector;
+    for(unsigned i=1; i <= this->n; i++){//for each trip
+        originsVector.push_back(this->nodes[i]);
+        destinationsVector.push_back(this->nodes[i+n]);
+        if (originsVector.size() > 5){
+            thisNodeVector.push_back(this->nodes[0]);//add origin depot node
+            thisNodeVector.insert(thisNodeVector.end(), originsVector.begin(), originsVector.end());
+            thisNodeVector.insert(thisNodeVector.end(), destinationsVector.begin(), destinationsVector.end());
+            thisNodeVector.push_back(this->nodes[this->nodes.size()-1]);//add destination depot node
+            this->splitNodeVectors.push_back(thisNodeVector);
 
+            thisNodeVector.resize(0);
+            originsVector.resize(0);
+            destinationsVector.resize(0);
+        }
+    }
+*/
     vector<int> splitWindows = {-99999, 480, 960, 99999}; 
     vector<Node> bufferOriginsVector;
     vector<Node> bufferDestinationsVector;
@@ -687,29 +705,9 @@ void splitNodeVector(){
         vector<Node> originsVector;
         vector<Node> destinationsVector;
         thisNodeVector.push_back(this->nodes[0]);//add origin depot node
-        if(bufferOriginsVector.size() > 0){
-            //add buffered nodes to origins vector and erase origins buffer
-            originsVector.insert(originsVector.end(), bufferOriginsVector.begin(), bufferOriginsVector.end());
-            bufferOriginsVector.resize(0);
-            //add buffered nodes to destinations vector and erase destinations buffer
-            destinationsVector.insert(destinationsVector.end(), bufferDestinationsVector.begin(), bufferDestinationsVector.end());
-            bufferDestinationsVector.resize(0);
-        }
         for(unsigned i = 1; i <= this->n; i++){
             if((nodes[i].earliestServiceTime < *timeWindowsIterator) && (nodes[i].earliestServiceTime >= *(timeWindowsIterator-1) )){
-                if((originsVector.size() == 18)){
-                    cout << "Parser warning: the shift from ";
-                    cout << *timeWindowsIterator << "to " << *(timeWindowsIterator-1);
-                    cout << " contains 10 or more trips. This may result in lengthy computation time (10-20 min)." << "\n";
-                    originsVector.push_back(nodes[i]);
-                    destinationsVector.push_back(nodes[i+n]);
-                }
-                else if(originsVector.size() == 24){
-                    if(bufferOriginsVector.size() == 0){
-                        cout << "Parser warning: the shift from ";
-                        cout << *timeWindowsIterator << "to " << *(timeWindowsIterator-1);
-                        cout << "has reached the maximum feasible size of 12 trips. To manage solver time, further trips will be processed with the next shift batch.\n";
-                    }
+                if(originsVector.size() == 4){
                     bufferOriginsVector.push_back(nodes[i]);
                     bufferDestinationsVector.push_back(nodes[i+n]);
                 }
@@ -718,13 +716,23 @@ void splitNodeVector(){
                     destinationsVector.push_back(nodes[i+n]);
                 }
             }
+            if(bufferOriginsVector.size() == 4){
+                vector<Node> bufferVector;
+                bufferVector.push_back(this->nodes[0]);
+                bufferVector.insert(bufferVector.end(), bufferOriginsVector.begin(), bufferOriginsVector.end());
+                bufferVector.insert(bufferVector.end(), bufferDestinationsVector.begin(), bufferDestinationsVector.end());
+                bufferVector.push_back(this->nodes[this->nodes.size()-1]);//add destination depot node
+                this->splitNodeVectors.push_back(bufferVector);
+                bufferOriginsVector.resize(0);
+                bufferDestinationsVector.resize(0);
+            }
+
         }
         thisNodeVector.insert(thisNodeVector.end(), originsVector.begin(), originsVector.end());
         thisNodeVector.insert(thisNodeVector.end(), destinationsVector.begin(), destinationsVector.end());
         thisNodeVector.push_back(this->nodes[this->nodes.size()-1]);//add destination depot node
         this->splitNodeVectors.push_back(thisNodeVector);
     }
-    cout << "Origins buffer size: " << bufferOriginsVector.size() << "\n";
     //add buffered nodes
     while(bufferOriginsVector.size() > 0){
         vector<Node> origins;
@@ -753,9 +761,11 @@ void splitNodeVector(){
 
 void printSplitNodeVectors(){
     cout << "<<<<<<<<<<Printing split vectors>>>>>>>>>>>\n";
+    cout << "Total vectors: " << this->splitNodeVectors.size() << "\n";
     for(auto iterator = this->splitNodeVectors.begin(); iterator < this->splitNodeVectors.end(); iterator++){
         vector<Node> thisVector = *iterator;
         cout << "Next vector:\n";
+        
         for(auto jterator = thisVector.begin(); jterator < thisVector.end(); jterator++){
             cout << "\t" <<  "Name: " << jterator->name << "\n";
             cout << "\t" <<  "Early: " << jterator->earliestServiceTime << "\n";

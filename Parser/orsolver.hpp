@@ -12,7 +12,7 @@
 #include "edge.hpp"
 #include "ortools/linear_solver/linear_solver.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 using namespace operations_research;
 
@@ -118,8 +118,6 @@ class ORSolver{
         }
 
         void generateSchedule(){
-            //open schedule file for writing
-            //close schedule file without writing (to erase it)
             ofstream scheduleFile;
             scheduleFile.open(this->config.scheduleFilePath, std::ofstream::app);
             for(unsigned k = 0; k < this->vehicles.size(); k++){//for each vehicle
@@ -135,7 +133,7 @@ class ORSolver{
                         vehicleRouteByIndex.push_back(thisEdge);
                         break;
                     }
-                }
+              }
                 //if first edge goes to terminal depot, vehicle is unused, continue to next vehicle
                 if(vehicleRouteByIndex[0].second == (this->nodes.size()-1)){
                     continue;
@@ -162,23 +160,27 @@ class ORSolver{
                 scheduleFile << line;
                 for(unsigned i=0; i < vehicleRouteByIndex.size(); i++){//for each edge
                     pair<int,int> thisEdgeIndices = vehicleRouteByIndex[i];
-
-                    //don't print edges ending at FIRST
                     unsigned originIndex = thisEdgeIndices.first;
                     unsigned destinationIndex = thisEdgeIndices.second;
+                    Node originNode = this->nodes[originIndex];
                     Node destinationNode = this->nodes[destinationIndex];
-                    if(destinationNode.address == this->nodes[0].address){
+
+                    //don't print edges that start and end with the same address
+                    if(destinationNode.address == originNode.address){
                         continue;
                     }
 
                     int bValueDeparture = b[originIndex][k]->solution_value();
+                    //add travel time to departure time bvalue (minutes to minutes)
                     int bValueArrival = b[destinationIndex][k]->solution_value();
+                    bValueDeparture += getTransitTime(originNode, destinationNode);
                     int departureTime = convertBValueTo24Hr(bValueDeparture);
                     int arrivalTime = convertBValueTo24Hr(bValueArrival);
-                    string address = destinationNode.address;
+                    string destinationAddress = destinationNode.address;
+                    string originAddress = originNode.address;
                     string name = destinationNode.name;
 
-                    string line = "Departing: " + to_string(departureTime) + "," + "Address: " + address + "," + "Arriving: " + to_string(arrivalTime) + "," + "Passengers: " + name + "\n";
+                    string line = "Departing: " + to_string(departureTime) + "," + "\"Origin Address: " + originAddress + "\"" + "," + "\"Destination address: " + destinationAddress+ "\"" + "," + "Arriving: " + to_string(arrivalTime) + "," + "Passengers: " + name + "\n";
                     scheduleFile << line;
                 }
                 scheduleFile << "\n";
@@ -462,18 +464,18 @@ class ORSolver{
         }
 
         int getTransitTime(Node i, Node j){
- //           Spyglass spyglass = Spyglass(i.address, j.address, this->config);
- //           int travelTime = spyglass.getTravelTime();
- //           if(travelTime == 0){
- //               travelTime = 1;
- //           }
-//                return travelTime;
-            return 1;
+            Spyglass spyglass = Spyglass(i.address, j.address, this->config);
+            int travelTime = spyglass.getTravelTime();
+            if(travelTime == 0){
+                travelTime = 1;
+            }
+                return travelTime;
+//            return 1;
         }
 
 int convertBValueTo24Hr(int bValue){
-    int time24Hr = convertMinutesTo24HrTime(bValue);
-    time24Hr = removeTimeOffset(time24Hr);
+    int timeMinusOffset = removeTimeOffset(bValue);
+    int time24Hr = convertMinutesTo24HrTime(timeMinusOffset);
     return time24Hr;
 }
 
@@ -492,8 +494,8 @@ int convertMinutesTo24HrTime(int timeInMinutes){
     return timeIn24Hr;
 }
 
-int removeTimeOffset(int timeIn24Hr){
-    int timeMinusOffset = timeIn24Hr - 300;
+int removeTimeOffset(int timeInMinutes){
+    int timeMinusOffset = timeInMinutes - 180;
     return timeMinusOffset;
 }
 
